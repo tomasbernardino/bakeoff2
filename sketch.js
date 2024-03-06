@@ -32,6 +32,23 @@ let targets               = [];
 const GRID_ROWS           = 8;      // We divide our 80 targets in a 8x10 grid
 const GRID_COLUMNS        = 10;     // We divide our 80 targets in a 8x10 grid
 
+// Função para criar uma cópia classificada da matriz com base na coluna "city"
+function sortByCity(matrix) {
+  // Copia a matriz original
+  let sortedMatrix = matrix.slice();
+
+  // Classifica a matriz com base na coluna "city"
+  sortedMatrix.sort((a, b) => {
+    let cityA = a[1].toLowerCase(); // Assumindo que a coluna "city" está na posição 1
+    let cityB = b[1].toLowerCase();
+    if (cityA < cityB) return -1;
+    if (cityA > cityB) return 1;
+    return 0;
+  });
+
+  return sortedMatrix;
+}
+
 // Ensures important data is loaded before the program starts
 function preload()
 {
@@ -44,7 +61,26 @@ function setup()
 {
   createCanvas(700, 500);    // window size in px before we go into fullScreen()
   frameRate(60);             // frame rate (DO NOT CHANGE!)
-  
+ // Extrai os dados da tabela legendas para uma matriz JavaScript
+  let legendasArray = [];
+  for (let i = 0; i < legendas.getRowCount(); i++) {
+    let rowData = [];
+    for (let j = 0; j < legendas.getColumnCount(); j++) {
+      rowData.push(legendas.getString(i, j));
+    }
+    legendasArray.push(rowData);
+  }
+
+  // Ordena a matriz com base na coluna "city"
+  let sortedLegendasArray = sortByCity(legendasArray);
+
+  // Atualiza os dados da tabela legendas com os dados ordenados
+  for (let i = 0; i < sortedLegendasArray.length; i++) {
+    for (let j = 0; j < sortedLegendasArray[i].length; j++) {
+      legendas.set(i, j, sortedLegendasArray[i][j]);
+    }
+  }
+
   randomizeTrials();         // randomize the trial order at the start of execution
   drawUserIDScreen();        // draws the user start-up screen (student ID and display size)
 }
@@ -149,7 +185,9 @@ function mousePressed()
       if (targets[i].clicked(mouseX, mouseY)) 
       {
         // Checks if it was the correct target
-        if (targets[i].id === trials[current_trial] + 1) hits++;
+        print("Target id" + targets[i].id + "trial" +(legendas.getNum(trials[current_trial],0)));
+                                                      
+        if (targets[i].id === legendas.getNum(trials[current_trial],0)) hits++;
         else misses++;
         
         current_trial++;              // Move on to the next trial/target
