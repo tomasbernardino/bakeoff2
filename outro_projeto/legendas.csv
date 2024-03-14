@@ -1,0 +1,81 @@
+id,city,country,continent,latitude,longitude
+1,Barcelona,Spain,Europe,41.3828939,2.1774322
+2,Beijing,China,Asia,39.9057136,116.3912972
+3,Berlin,Germany,Europe,52.5170365,13.3888599
+4,Bogotá,Colombia,South America,4.6529539,-74.0835643
+5,Boston,USA,North America,42.3554334,-71.060511
+6,Brisbane,Australia,Australia,-27.4689682,153.0234991
+7,Brussels,Belgium, Europe,50.8550018,4.3512333761166175
+8,Budapest,Hungary,Europe,47.4978789,19.0402383
+9,Buenos Aires,Argentina,South America,-37.20172850,-59.84106970  
+10,Bucharest,Romania,Europe,44.4361414,26.1027202
+11,Beirut,Lebanon,Asia,33.8959203,35.47843
+12,Belgrade,Serbia,Europe,44.8178131,20.4568974
+13,Birmingham,UK,Europe,52.4796992,-1.9026911
+14,Baku,Azerbaijan,Asia,40.3755885,49.8328009
+15,Bologna,Italy,Europe,44.4938203,11.3426327
+16,Bratislava,Slovakia,Europe,48.1516988,17.1093063
+17,Bristol,UK,Europe,51.4538022,-2.5972985
+18,Busan,South Korea,Asia,35.1799528,129.0752365
+19,Bandung,Indonesia,Asia,-6.9215529,107.6110212
+20,Bremen,Germany,Europe,53.0758196,8.8071646
+21,Baton Rouge,USA,North America,30.44332000,-91.18747000  
+22,Bilbao,Spain,Europe,43.2630018,-2.9350039
+23,Bursa,Turkey,Asia,40.182737,29.0675481
+24,Bydgoszcz,Poland,Europe,53.1219648,18.0002529
+25,Bhopal,India,Asia,23.2584857,77.401989
+26,Banjul,Gambia,Africa,13.45535,-16.575646
+27,Brno,Czechia,Europe,49.1922443,16.6113382
+28,Barranquilla,Colombia,South America,11.0101922,-74.8231794084391
+29,Bari,Italy,Europe,41.1257843,16.8620293
+30,Benghazi,Libya,Asia,32.1288331,20.0817204
+31,Bradford,UK,Europe,53.7944229,-1.7519186
+32,Bishkek,Kyrgyzstan,Asia,42.8777895,74.6066926
+33,Bamako,Mali,Africa,12.61326555,-7.984739136241295
+34,Barquisimeto,Venezuela,South America,10.0774374,-69.3222293
+35,Bucaramanga,Colombia,South America,7.16698415,-73.1047294009737
+36,Bacolod,Philippines,Asia,10.6762836,122.9513786
+37,Baotou,China,Asia,40.6174777,109.944912
+38,Bhilai,India,Asia,21.2120677,81.3732849
+39,București,Romania,Europe,44.4361414,26.1027202
+40,Benevento,Italy,Europe,41.2476307,14.705705363146528
+41,Bahawalpur,Pakistan,Asia,29.394644,71.6638747
+42,Baguio,Philippines,Asia,16.4119955,120.593371
+43,Beira,Mozambique,Africa,-19.828707,34.841782
+44,Braga,Portugal,Europe,41.5510583,-8.4280045
+45,Burnaby,Canada,North America,49.2433804,-122.972545
+46,Balikpapan,Indonesia,Asia,-1.2398711,116.8593379
+47,Butuan,Philippines,Asia,8.9483324,125.5369442
+48,Białystok,Poland,Europe,53.132398,23.1591679
+49,Bahía Blanca,Argentina,South America,-38.71959,-62.27243
+50,Bochum,Germany,Europe,51.4818111,7.2196635
+51,Brest,Belarus,Europe,52.093751,23.6851851
+52,Batumi,Georgia,Asia,41.6509502,41.6360085
+53,Bhubaneswar,India,Asia,20.2602964,85.8394521
+54,Baroda,India,Asia,22.2973142,73.1942567
+55,Bloemfontein,South Africa,Africa,-29.116395,26.215496
+56,Badajoz,Spain,Europe,38.8780585,-6.9702048
+57,Benešov,Czechia,Europe,49.7818921,14.6869121
+58,Bayamo,Cuba,North America,20.3734356,-76.6492015
+59,Burbank,USA,North America,34.1812089,-118.307201
+60,Brindisi,Italy,Europe,40.63591975,17.688443357842537
+61,Brașov,Romania,Europe,45.6525105,25.6105654
+62,Bilaspur,India,Asia,28.868311,79.29807496695935
+63,Béchar,Algeria,Africa,31.385726,-2.011595847987405
+64,Braunschweig,Germany,Europe,52.2646577,10.5236066
+65,Baranagar,India,Asia,22.6493438,88.3685302
+66,Bagé,Brazil,South America,-31.3314264,-54.1062808
+67,Belém,Brazil,South America,-1.45056,-48.4682453
+68,Baghdad,Iraq,Asia,33.34058,44.40088
+69,Bne Brak,Israel,Asia,32.08074000,34.83380000
+70,Bikaner,India,Asia,28.0159286,73.3171367
+71,Bial Podlaska,Poland,Europe,52.03238,23.11652
+72,Barakaldo,Spain,Europe,43.29548,-2.9900933
+73,Białogard,Poland,Europe,54.0145099,15.96912513985604
+74,Bafoussam,Cameroon,Africa,5.4758844,10.4217852
+75,Bago,Myanmar,Asia,18.2457067,96.1004931
+76,Breda,Netherlands,Europe,51.5887845,4.7760237
+77,Beppu,Japan,Asia,33.2845752,131.4913063
+78,Birendranagar,Nepal,Asia,28.59887315,81.60585694604744
+79,Bayreuth,Germany,Europe,49.9427202,11.5763079
+80,Baoding,China,Asia,38.8579735,115.490696

@@ -6,7 +6,7 @@
 // p5.js reference: https://p5js.org/reference/
 
 // Database (CHANGE THESE!)
-const GROUP_NUMBER        = 0;      // Add your group number here as an integer (e.g., 2, 3)
+const GROUP_NUMBER        = 59;      // Add your group number here as an integer (e.g., 2, 3)
 const RECORD_TO_FIREBASE  = false;  // Set to 'true' to record user results to Firebase
 
 // Pixel density and setup variables (DO NOT CHANGE!)
@@ -31,9 +31,12 @@ let attempt               = 0;      // users complete each test twice to account
 let targets               = [];
 const GRID_ROWS           = 8;      // We divide our 80 targets in a 8x10 grid
 const GRID_COLUMNS        = 10;     // We divide our 80 targets in a 8x10 grid
+const MENU_ID = -1;    // The ID of the target that is not the final target
+//Map to store the prefixes of the cities and the 
+let targetsByPrefix = new Map();
 
 // Função para criar uma cópia classificada da matriz com base na coluna "city"
-function sort_city_by_size(matrix) {
+function sortByCity(matrix) {
   // Copia a matriz original
   let sortedMatrix = matrix.slice();
 
@@ -41,8 +44,8 @@ function sort_city_by_size(matrix) {
   sortedMatrix.sort((a, b) => {
     let cityA = a[1].toLowerCase(); // Assumindo que a coluna "city" está na posição 1
     let cityB = b[1].toLowerCase();
-    if (cityA.length < cityB.length) return -1;
-    if (cityA.length > cityB.length) return 1;
+    if (cityA < cityB) return -1;
+    if (cityA > cityB) return 1;
     return 0;
   });
 
@@ -72,7 +75,7 @@ function setup()
   }
 
   // Ordena a matriz com base na coluna "city"
-  let sortedLegendasArray = sort_city_by_size(legendasArray);
+  let sortedLegendasArray = sortByCity(legendasArray);
 
   // Atualiza os dados da tabela legendas com os dados ordenados
   for (let i = 0; i < sortedLegendasArray.length; i++) {
@@ -83,6 +86,62 @@ function setup()
 
   randomizeTrials();         // randomize the trial order at the start of execution
   drawUserIDScreen();        // draws the user start-up screen (student ID and display size)
+}
+
+function createMapSet(indexed_array, size){
+  
+  for (let i = 0; i < legendas.getRowCount(); i++) {
+    let prefix = legendas.getString(i, 1).substring(0, size);
+
+    if (prefix.localeCompare("Bé") === 0) {
+      if(!indexed_array["Be"]){
+        indexed_array["Be"] = [];
+      }
+      indexed_array["Be"].push(i); // FIXME afinal vamos guardar o INDICE NA TABELA DE LEGENDAS
+                                   // para conseguirmos sempre sabê-lo em tempo constante, nao achamos outra maneira de arranjar o ID para o target 
+    }                              // ANTES: legendas.getString(i, 1) -> passavamos o nome da cidade e nao tinhamos o ID 
+    else 
+    {
+      if (!indexed_array[prefix]) {
+        indexed_array[prefix] = [];
+      }
+      indexed_array[prefix].push(i);
+    }
+  }
+  //indexed_array["Be"][0]
+}
+
+// function createMapSet(size, target_size){
+//  let indexed_array = {};
+
+//  let prefixBeAccent = new Target(0, 0, target_size, "Bé", 0, true);
+//  let prefixBe = new Target(0, 0, target_size, "Be", 0, true);
+
+//  for (let i = 0; i < legendas.getRowCount(); i++) {
+//    let prefix = new Target(0, 0, target_size, legendas.getString(i, 1).substring(0, size), 0, true);
+
+//    if (prefix.compareLabel(prefixBeAccent)) {
+//      if(!indexed_array[prefixBe]){
+//        indexed_array[prefixBe] = [];
+//      }
+//      indexed_array[prefixBe].push(new Target(0,0, target_size, legendas.getString(i, 1), 0, false));
+//    }
+//    if (!indexed_array[prefix.getLabel()]) {
+//      indexed_array[prefix] = [];
+//    }
+//    indexed_array[prefix].push(new Target(0,0, target_size, legendas.getString(i, 1), 0, false));
+//  }
+
+//  print(indexed_array);
+//  //indexed_array["Be"][0]
+//  return indexed_array;
+// }
+
+function drawScreen1(){
+  for(let i = 0; i < targets.length; i++){
+    targets[i].draw();
+    //print(targets[i].getLabel());
+  }
 }
 
 // Runs every frame and redraws the screen
@@ -100,7 +159,12 @@ function draw()
     text("Trial " + (current_trial + 1) + " of " + trials.length, 50, 20);
         
     // Draw all targets
-	for (var i = 0; i < legendas.getRowCount(); i++) targets[i].draw();
+    if (drawing === "screen1"){
+    drawScreen1();
+    }
+    else drawCurrentScreen();
+    
+	  //for (var i = 0; i < legendas.getRowCount(); i++) targets[i].draw();
     
     // Draws the target label to be selected in the current trial. We include 
     // a black rectangle behind the trial label for optimal contrast in case 
@@ -182,16 +246,35 @@ function mousePressed()
     for (var i = 0; i < legendas.getRowCount(); i++)
     {
       // Check if the user clicked over one of the targets
-      if (targets[i].clicked(mouseX, mouseY)) 
+      let target = targets[i];
+
+      if (target.clicked(mouseX, mouseY) && target.getDrawn()) 
       {
-        // Checks if it was the correct target
-        print("Target id" + targets[i].id + "trial" +(legendas.getNum(trials[current_trial],0)));
-                                                      
-        if (targets[i].id === legendas.getNum(trials[current_trial],0)) hits++;
-        else misses++;
-        
-        current_trial++;              // Move on to the next trial/target
-        break;
+        if(!target.getMenu())
+        {
+          // Checks if it was the correct target
+          print("Target id" + targets[i].id + "trial" +(legendas.getNum(trials[current_trial],0)));
+                                                        
+          if (targets[i].id === legendas.getNum(trials[current_trial],0)) hits++;
+          else misses++;
+          
+          current_trial++;              // Move on to the next trial/target
+          break;
+
+        } else //its a iterable menu 
+        {
+
+        }
+        /*
+        for (let i = 0; i < cities.length; i++) {
+          let prefix = cities[i].substring(0, 2);
+          if (prefs.has(prefix))
+            continue;
+          if (prefix.localeCompare("Be") === 0) {
+            prefix += "|Bé";
+            prefs.add("Bé");
+          }
+        }*/
       }
     }
     
@@ -236,29 +319,55 @@ function continueTest()
 // Creates and positions the UI targets
 function createTargets(target_size, horizontal_gap, vertical_gap)
 {
-  // Define the margins between targets by dividing the white space 
-  // for the number of targets minus one
+  let indexed_array = {};
+  createMapSet(indexed_array, 2); // Chama a função createMapSet
+  console.log(indexed_array);
+  var r = 0;
+  var c = 0;
+
   h_margin = horizontal_gap / (GRID_COLUMNS -1);
   v_margin = vertical_gap / (GRID_ROWS - 1);
+
+  for (key in indexed_array){
+    console.log("Key:",key, "Value:", indexed_array[key]);
+    let target_x = 40 + (h_margin + target_size) * c + target_size/2;        // give it some margin from the left border
+    let target_y = (v_margin + target_size) * r + target_size/2;
+    
+    if (indexed_array[key].length > 1){
+      let targetMenu = new Target(target_x, target_y+ 40, target_size, key, MENU_ID, indexed_array[key]);
+      targets.push(targetMenu);
+    }
+    else{
+      let legendas_index = indexed_array[key][0];
+      let target = new Target(target_x, target_y + 40 , target_size,legendas.getString(legendas_index,1), legendas.getNum(legendas_index,0), null);
+      targets.push(target);
+    }
+    if (c < GRID_COLUMNS -1) c++; //FIXME: potencial problema
+    else{c = 0; r++;}
+    if (r > GRID_ROWS) break;
+  }
+   
+  //print(targets);
+}
+  // Define the margins between targets by dividing the white space 
+  // for the number of targets minus one
+
   
   // Set targets in a 8 x 10 grid
-  for (var r = 0; r < GRID_ROWS; r++)
-  {
-    for (var c = 0; c < GRID_COLUMNS; c++)
-    {
-      let target_x = 40 + (h_margin + target_size) * c + target_size/2;        // give it some margin from the left border
-      let target_y = (v_margin + target_size) * r + target_size/2;
-      
-      // Find the appropriate label and ID for this target
-      let legendas_index = c + GRID_COLUMNS * r;
-      let target_id = legendas.getNum(legendas_index, 0);  
-      let target_label = legendas.getString(legendas_index, 1);   
-      
-      let target = new Target(target_x, target_y + 40, target_size, target_label, target_id);
-      targets.push(target);
-    }  
-  }
-}
+//  for (var r = 0; r < GRID_ROWS; r++)
+//  {
+//    for (var c = 0; c < GRID_COLUMNS; c++)
+//    {
+//      // Find the appropriate label and ID for this target
+//      let legendas_index = c + GRID_COLUMNS * r;
+//      let target_id = legendas.getNum(legendas_index, 0);  
+//      let target_label = legendas.getString(legendas_index, 1);   
+//      
+//      let target = new Target(target_x, target_y + 40, target_size, target_label, target_id);
+//      targets.push(target);
+//    }  
+//  }
+//}
 
 // Is invoked when the canvas is resized (e.g., when we go fullscreen)
 function windowResized() 

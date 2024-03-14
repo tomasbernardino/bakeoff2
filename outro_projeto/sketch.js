@@ -28,26 +28,22 @@ let current_trial         = 0;      // the current trial number (indexes into tr
 let attempt               = 0;      // users complete each test twice to account for practice (attemps 0 and 1)
 
 // Target list and layout variables
-let targets               = [];
-const GRID_ROWS           = 8;      // We divide our 80 targets in a 8x10 grid
-const GRID_COLUMNS        = 10;     // We divide our 80 targets in a 8x10 grid
+const TEXT_FACTOR_1       = 300;
+const TEXT_FACTOR_2       = 0;
 
-// Função para criar uma cópia classificada da matriz com base na coluna "city"
-function sortByCity(matrix) {
-  // Copia a matriz original
-  let sortedMatrix = matrix.slice();
+// Make your decisions in 'cm', so that targets have the same size for all participants
+// Below we find out out white space we can have between 2 cm targets
+let screen_width; // screen width
+let screen_height; // screen height
+let target_size = 2.3; // sets the target size (will be converted to cm when passed to createTargets)
+let target_text_size;
 
-  // Classifica a matriz com base na coluna "city"
-  sortedMatrix.sort((a, b) => {
-    let cityA = a[1].toLowerCase(); // Assumindo que a coluna "city" está na posição 1
-    let cityB = b[1].toLowerCase();
-    if (cityA < cityB) return -1;
-    if (cityA > cityB) return 1;
-    return 0;
-  });
-
-  return sortedMatrix;
-}
+let COLOR_WHITE;
+let COLOR_BLACK;
+let COLOR_DEFAULT_BUTTON;
+let DEFAULT_TARGET_FONT;
+let DEFAULT_MENU_FONT;
+let DEBUG;
 
 // Ensures important data is loaded before the program starts
 function preload()
@@ -59,58 +55,46 @@ function preload()
 // Runs once at the start
 function setup()
 {
-  createCanvas(700, 500);    // window size in px before we go into fullScreen()
-  frameRate(60);             // frame rate (DO NOT CHANGE!)
- // Extrai os dados da tabela legendas para uma matriz JavaScript
-  let legendasArray = [];
-  for (let i = 0; i < legendas.getRowCount(); i++) {
-    let rowData = [];
-    for (let j = 0; j < legendas.getColumnCount(); j++) {
-      rowData.push(legendas.getString(i, j));
-    }
-    legendasArray.push(rowData);
-  }
+  colorMode(HSB, 360, 100, 100); // Use HSB color
+  COLOR_WHITE = color(0, 0, 100);
+  COLOR_BLACK = color(0, 0, 0);
+  COLOR_DEFAULT_BUTTON = color(0, 0, 30);
+  DEFAULT_TARGET_FONT = "Serif";
+  DEFAULT_MENU_FONT = "Serif";
+  DEBUG = false;
 
-  // Ordena a matriz com base na coluna "city"
-  let sortedLegendasArray = sortByCity(legendasArray);
-
-  // Atualiza os dados da tabela legendas com os dados ordenados
-  for (let i = 0; i < sortedLegendasArray.length; i++) {
-    for (let j = 0; j < sortedLegendasArray[i].length; j++) {
-      legendas.set(i, j, sortedLegendasArray[i][j]);
-    }
-  }
-
-  randomizeTrials();         // randomize the trial order at the start of execution
-  drawUserIDScreen();        // draws the user start-up screen (student ID and display size)
+  createCanvas(700, 500);        // window size in px before we go into fullScreen()
+  frameRate(60);                 // frame rate (DO NOT CHANGE!)
+  randomizeTrials();             // randomize the trial order at the start of execution
+  drawUserIDScreen();            // draws the user start-up screen (student ID and display size)
+  
 }
 
 // Runs every frame and redraws the screen
 function draw()
 {
   if (draw_targets && attempt < 2)
-  {     
+  {
     // The user is interacting with the 6x3 target grid
-    background(color(0,0,0));        // sets background to black
+    background(COLOR_BLACK);        // sets background to black
     
     // Print trial count at the top left-corner of the canvas
     textFont("Arial", 16);
-    fill(color(255,255,255));
+    fill(COLOR_WHITE);
     textAlign(LEFT);
     text("Trial " + (current_trial + 1) + " of " + trials.length, 50, 20);
-        
-    // Draw all targets
-	for (var i = 0; i < legendas.getRowCount(); i++) targets[i].draw();
+    
+    drawCurrentFrame();
     
     // Draws the target label to be selected in the current trial. We include 
     // a black rectangle behind the trial label for optimal contrast in case 
     // you change the background colour of the sketch (DO NOT CHANGE THESE!)
-    fill(color(0,0,0));
+    fill(COLOR_BLACK);
     rect(0, height - 40, width, 40);
  
-    textFont("Arial", 20); 
-    fill(color(255,255,255)); 
-    textAlign(CENTER); 
+    textFont("Arial", 20);
+    fill(COLOR_WHITE);
+    textAlign(CENTER);
     text(legendas.getString(trials[current_trial],1), width/2, height - 20);
   }
 }
@@ -127,8 +111,8 @@ function printAndSavePerformance()
   let timestamp         = day() + "/" + month() + "/" + year() + "  " + hour() + ":" + minute() + ":" + second();
   
   textFont("Arial", 18);
-  background(color(0,0,0));   // clears screen
-  fill(color(255,255,255));   // set text fill color to white
+  background(COLOR_BLACK);   // clears screen
+  fill(COLOR_WHITE);   // set text fill color to white
   textAlign(LEFT);
   text(timestamp, 10, 20);    // display time on screen (top-left corner)
   
@@ -153,7 +137,7 @@ function printAndSavePerformance()
         accuracy:           accuracy,
         attempt_duration:   test_time,
         time_per_target:    time_per_target,
-        target_w_penalty:   target_w_penalty,
+        target_w_penalty:   target_w_penalty,          
   }
   
   // Sends data to DB (DO NOT CHANGE!)
@@ -167,7 +151,7 @@ function printAndSavePerformance()
     }
     
     // Adds user performance results
-    let db_ref = database.ref('G' + GROUP_NUMBER);
+    let db_ref = database.ref('G' + GROUP_NUMBER + 'V' + PROJECT_CODENAME);
     db_ref.push(attempt_data);
   }
 }
@@ -179,21 +163,7 @@ function mousePressed()
   // (i.e., during target selections)
   if (draw_targets)
   {
-    for (var i = 0; i < legendas.getRowCount(); i++)
-    {
-      // Check if the user clicked over one of the targets
-      if (targets[i].clicked(mouseX, mouseY)) 
-      {
-        // Checks if it was the correct target
-        print("Target id" + targets[i].id + "trial" +(legendas.getNum(trials[current_trial],0)));
-                                                      
-        if (targets[i].id === legendas.getNum(trials[current_trial],0)) hits++;
-        else misses++;
-        
-        current_trial++;              // Move on to the next trial/target
-        break;
-      }
-    }
+    detectClick(mouseX, mouseY);
     
     // Check if the user has completed all trials
     if (current_trial === NUM_OF_TRIALS)
@@ -236,28 +206,37 @@ function continueTest()
 // Creates and positions the UI targets
 function createTargets(target_size, horizontal_gap, vertical_gap)
 {
-  // Define the margins between targets by dividing the white space 
-  // for the number of targets minus one
-  h_margin = horizontal_gap / (GRID_COLUMNS -1);
-  v_margin = vertical_gap / (GRID_ROWS - 1);
-  
-  // Set targets in a 8 x 10 grid
-  for (var r = 0; r < GRID_ROWS; r++)
-  {
-    for (var c = 0; c < GRID_COLUMNS; c++)
-    {
-      let target_x = 40 + (h_margin + target_size) * c + target_size/2;        // give it some margin from the left border
-      let target_y = (v_margin + target_size) * r + target_size/2;
-      
-      // Find the appropriate label and ID for this target
-      let legendas_index = c + GRID_COLUMNS * r;
-      let target_id = legendas.getNum(legendas_index, 0);  
-      let target_label = legendas.getString(legendas_index, 1);   
-      
-      let target = new Target(target_x, target_y + 40, target_size, target_label, target_id);
-      targets.push(target);
-    }  
+  setupFrames(horizontal_gap, vertical_gap);
+  let menus = new Targets(target_size, screen_height - 3 * target_size, 0.75, 0.75, screen_width - 2 * target_size, 4 * target_size);
+  //let outliers = new Targets(target_size, screen_height - target_size * 1.5, 1, 1, screen_width - 2 * target_size, 4 * target_size);
+  let outliers = new NamedTargets(target_size, screen_height - target_size, 0.75, 0.75, screen_width - 2 * target_size, 4 * target_size, DEFAULT_MENU_FONT, target_text_size, COLOR_WHITE);
+  let cities = legendas.getColumn(1);
+  let prefs = new Set();
+  cities.sort();
+  let outlier_cities = legendas.matchRows("^By|^Bn|^Bl", 1);
+
+  for (let i = 0; i < outlier_cities.length; i++) {
+    outliers.with(new Target(200, 200, target_size, outlier_cities[i].getString(1), outlier_cities[i].getNum(0), true, COLOR_DEFAULT_BUTTON, DEFAULT_TARGET_FONT, COLOR_WHITE, target_text_size));
+    prefs.add(outlier_cities[i].getString(1).substring(0, 2));
   }
+
+  for (let i = 0; i < cities.length; i++) {
+    let prefix = cities[i].substring(0, 2);
+    if (prefs.has(prefix))
+      continue;
+    if (prefix.localeCompare("Be") === 0) {
+      prefix += "|Bé";
+      prefs.add("Bé");
+    }
+
+    let menu = new Menu(0, 0, target_size * 1.2, prefix.substring(0, 2).toUpperCase(), COLOR_DEFAULT_BUTTON, DEFAULT_MENU_FONT, COLOR_WHITE, 72, base_frame, 10, 10);
+    let targets = new Targets(target_size, screen_height - 4 * target_size, 0.5, 1, screen_width - target_size, 4 * target_size);
+    loadMenu(menu, targets, prefix, legendas);
+    menus.with(menu);
+    prefs.add(prefix.substring(0, 2));
+  }
+  base_frame.with(menus);
+  base_frame.with(outliers);
 }
 
 // Is invoked when the canvas is resized (e.g., when we go fullscreen)
@@ -274,15 +253,17 @@ function windowResized()
   
     // Make your decisions in 'cm', so that targets have the same size for all participants
     // Below we find out out white space we can have between 2 cm targets
-    let screen_width   = display.width * 2.54;             // screen width
-    let screen_height  = display.height * 2.54;            // screen height
-    let target_size    = 2;                                // sets the target size (will be converted to cm when passed to createTargets)
-    let horizontal_gap = screen_width - target_size * GRID_COLUMNS;// empty space in cm across the x-axis (based on 10 targets per row)
-    let vertical_gap   = screen_height - target_size * GRID_ROWS;  // empty space in cm across the y-axis (based on 8 targets per column)
+    screen_width   = display.width * 2.54;             // screen width
+    screen_height  = display.height * 2.54;            // screen height
 
-    // Creates and positions the UI targets according to the white space defined above (in cm!)
-    // 80 represent some margins around the display (e.g., for text)
-    createTargets(target_size * PPCM, horizontal_gap * PPCM - 80, vertical_gap * PPCM - 80);
+    let horizontal_gap = 2;
+    
+    let vertical_gap = 2;
+
+    target_text_size = Math.floor((TEXT_FACTOR_1 / display.diagonal) + TEXT_FACTOR_2);
+    console.log("Calculated text size:" + target_text_size);
+    
+    createTargets(target_size, horizontal_gap, vertical_gap);
 
     // Starts drawing targets immediately after we go fullscreen
     draw_targets = true;
