@@ -1,3 +1,7 @@
+//IDEAS: para dar para voltar para tras entre menus a ideia seria cada target ter o seu parent e ao clicar para voltar 
+//       para tras o drawing mudaria para o parent 
+//       ou algo como guardar o ultimo menu em que esteve (duvidoso, se estivermos no terceiro ecra e quisermos voltar 2 para tras para o menu inicial)
+
 // Bake-off #2 -- Seleção em Interfaces Densas
 // IPM 2023-24, Período 3
 // Entrega: até às 23h59, dois dias úteis antes do sexto lab (via Fenix)
@@ -87,7 +91,8 @@ function setup()
   randomizeTrials();         // randomize the trial order at the start of execution
   drawUserIDScreen();        // draws the user start-up screen (student ID and display size)
 }
-
+//FIXME mudar nome da função
+// pega nas legendas e subdivide em arrays orgnaizados por prefixo (2 letras)
 function createMapSet(indexed_array, size){
   
   for (let i = 0; i < legendas.getRowCount(); i++) {
@@ -116,7 +121,6 @@ function createMapSet(indexed_array, size){
 
 //  let prefixBeAccent = new Target(0, 0, target_size, "Bé", 0, true);
 //  let prefixBe = new Target(0, 0, target_size, "Be", 0, true);
-
 //  for (let i = 0; i < legendas.getRowCount(); i++) {
 //    let prefix = new Target(0, 0, target_size, legendas.getString(i, 1).substring(0, size), 0, true);
 
@@ -144,6 +148,12 @@ function drawScreen1(){
   }
 }
 
+function screen1remove(){
+  for(let i = 0; i < targets.length; i++){
+    targets[i].setDrawn(false);
+  }
+}
+
 // Runs every frame and redraws the screen
 function draw()
 {
@@ -159,11 +169,14 @@ function draw()
     text("Trial " + (current_trial + 1) + " of " + trials.length, 50, 20);
         
     // Draw all targets
+    // desenha o ecra de acordo com o que esta no drawing (screen1 =  inicial), se for apos carregar num target(menu) drawing = target clicado
     if (drawing === "screen1"){
     drawScreen1();
     }
-    else drawCurrentScreen();
-    
+    else{ 
+      drawCurrentScreen();
+    }
+ 
 	  //for (var i = 0; i < legendas.getRowCount(); i++) targets[i].draw();
     
     // Draws the target label to be selected in the current trial. We include 
@@ -242,39 +255,47 @@ function mousePressed()
   // Only look for mouse releases during the actual test
   // (i.e., during target selections)
   if (draw_targets)
-  {
-    for (var i = 0; i < legendas.getRowCount(); i++)
-    {
-      // Check if the user clicked over one of the targets
-      let target = targets[i];
+  { 
+    let aux; //vai guardar a lista de targets do menu atual(screen1 ou outro menu)
+    if(drawing === "screen1"){
+      aux = targets;
+    }                
+    else{ //caso outro menu/submenu
+      aux = drawing.targets;
+    }
 
-      if (target.clicked(mouseX, mouseY) && target.getDrawn()) 
+    for (let i = 0; i< aux.length; i++)
+    {
+      
+      let target = aux[i];
+      // Check if the user clicked over one of the targets
+      if (target.clicked(mouseX, mouseY))
       {
-        if(!target.getMenu())
-        {
+        if(target.getID() === MENU_ID){ 
+          if (drawing === "screen1") screen1remove();
+          else{
+            drawing.delete();
+          }
+          drawing = target; // se clicar num target, já apagou (hitboxes) os que estavam no ecrã e agora vai indicar ao draw que pode desenhar o menu clicado
+        }
+        else{
+          if (drawing === "screen1"){
+            screen1remove();
+          }
+          else{ 
+            drawing.delete();
+          }
+          drawing = "screen1"; //no caso de ter clicado num target final, irá voltar ao ecrã inicial
+        
           // Checks if it was the correct target
           print("Target id" + targets[i].id + "trial" +(legendas.getNum(trials[current_trial],0)));
                                                         
-          if (targets[i].id === legendas.getNum(trials[current_trial],0)) hits++;
+          if (target.id === legendas.getNum(trials[current_trial],0)) hits++;
           else misses++;
           
           current_trial++;              // Move on to the next trial/target
-          break;
-
-        } else //its a iterable menu 
-        {
-
         }
-        /*
-        for (let i = 0; i < cities.length; i++) {
-          let prefix = cities[i].substring(0, 2);
-          if (prefs.has(prefix))
-            continue;
-          if (prefix.localeCompare("Be") === 0) {
-            prefix += "|Bé";
-            prefs.add("Bé");
-          }
-        }*/
+        break;
       }
     }
     
@@ -316,7 +337,13 @@ function continueTest()
   draw_targets = true; 
 }
 
-// Creates and positions the UI targets
+// Apos subdividir as legendas em arrays organizados por prefixo, itera pelo array de prefixos e cria os targets
+// se o prefixo tiver mais que um elemento, cria um target(menu) com o prefixo e passa para este o array das cidades com o prefixo
+// para depois serem criados os submenus no createSubMenusOrTargets do target.js, tudo isto é feito apenas uma vez e de uma vez  
+// (todos os submenus sao logo criados) quando o Target é criado, mas nao sao desenhados, apenas quando clicamos no target(menu) é que sao desenhados
+// se tiver apenas um elemento, cria um target com o nome da cidade
+
+//!!!!!!!!!!!!!!!!!! aqui é que se pode mudar o layout/posicionamento e tamanho dos targets !!!!!!!!!!!!!!!!!!!!!!!!!
 function createTargets(target_size, horizontal_gap, vertical_gap)
 {
   let indexed_array = {};
@@ -342,7 +369,7 @@ function createTargets(target_size, horizontal_gap, vertical_gap)
       let target = new Target(target_x, target_y + 40 , target_size,legendas.getString(legendas_index,1), legendas.getNum(legendas_index,0), null);
       targets.push(target);
     }
-    if (c < GRID_COLUMNS -1) c++; //FIXME: potencial problema
+    if (c < GRID_COLUMNS -1) c++; //Serve para iterar pela grid do layout original
     else{c = 0; r++;}
     if (r > GRID_ROWS) break;
   }
@@ -375,19 +402,21 @@ function windowResized()
   if (fullscreen())
   {
     resizeCanvas(windowWidth, windowHeight);
-    
+
+    //FIXME voltar a colocar aqui as variaveis que estam comentadas e estao no target.js
+
     // DO NOT CHANGE THE NEXT THREE LINES!
-    let display        = new Display({ diagonal: display_size }, window.screen);
-    PPI                = display.ppi;                      // calculates pixels per inch
-    PPCM               = PPI / 2.54;                       // calculates pixels per cm
-  
-    // Make your decisions in 'cm', so that targets have the same size for all participants
-    // Below we find out out white space we can have between 2 cm targets
-    let screen_width   = display.width * 2.54;             // screen width
-    let screen_height  = display.height * 2.54;            // screen height
-    let target_size    = 2;                                // sets the target size (will be converted to cm when passed to createTargets)
-    let horizontal_gap = screen_width - target_size * GRID_COLUMNS;// empty space in cm across the x-axis (based on 10 targets per row)
-    let vertical_gap   = screen_height - target_size * GRID_ROWS;  // empty space in cm across the y-axis (based on 8 targets per column)
+    //let display        = new Display({ diagonal: display_size }, window.screen);
+    //PPI                = display.ppi;                      // calculates pixels per inch
+    //PPCM               = PPI / 2.54;                       // calculates pixels per cm
+  //
+    //// Make your decisions in 'cm', so that targets have the same size for all participants
+    //// Below we find out out white space we can have between 2 cm targets
+    //let screen_width   = display.width * 2.54;             // screen width
+    //let screen_height  = display.height * 2.54;            // screen height
+    //let target_size    = 2;                                // sets the target size (will be converted to cm when passed to createTargets)
+    //let horizontal_gap = screen_width - target_size * GRID_COLUMNS;// empty space in cm across the x-axis (based on 10 targets per row)
+    //let vertical_gap   = screen_height - target_size * GRID_ROWS;  // empty space in cm across the y-axis (based on 8 targets per column)
 
     // Creates and positions the UI targets according to the white space defined above (in cm!)
     // 80 represent some margins around the display (e.g., for text)
