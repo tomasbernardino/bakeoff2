@@ -34,10 +34,66 @@ function drawUserIDScreen()
   display_size_label.id('input');
   display_size_label.position(10, display_size_pos_y_offset);
   
-  // 3. Start button
+  // 3. Rules
+  let rules_size_pos_y_offset = display_size_pos_y_offset + display_size_form.size().height + 40;
+
+  rules_size_label = createDiv("Rules (always on display):");
+  rules_size_label.id('main_text');
+  rules_size_label.position(10, rules_size_pos_y_offset);
+
+  // 4. Rule 1
+  let rule1_size_pos_y_offset = rules_size_pos_y_offset + rules_size_label.size().height + 10;
+
+  rule1_size_label = createDiv("1. The inicial screen shows a circular prefix menu with two letters that when");
+  rule1_size_label.id('main_text');
+  rule1_size_label.position(20, rule1_size_pos_y_offset);
+
+  // Rule 1.1
+  let rule11_size_pos_y_offset = rule1_size_pos_y_offset + rule1_size_label.size().height;
+
+  rule11_size_label = createDiv("clicked shows a submenu of the desired prefix.");
+  rule11_size_label.id('main_text');
+  rule11_size_label.position(40, rule11_size_pos_y_offset);
+
+  // Rule 2
+  let rule2_size_pos_y_offset = rule11_size_pos_y_offset + rule11_size_label.size().height + 10;
+
+  rule2_size_label = createDiv("2. The words bellow are the city names.");
+  rule2_size_label.id('main_text');
+  rule2_size_label.position(20, rule2_size_pos_y_offset);
+
+  // Rule 3
+  let rule3_size_pos_y_offset = rule2_size_pos_y_offset + rule2_size_label.size().height + 10;
+
+  rule3_size_label = createDiv("3. If you click anywhere but a target, you go back to the inicial screen.");
+  rule3_size_label.id('main_text');
+  rule3_size_label.position(20, rule3_size_pos_y_offset);
+
+  // Rule 3
+  let rule4_size_pos_y_offset = rule3_size_pos_y_offset + rule3_size_label.size().height + 10;
+
+  rule4_size_label = createDiv("4. The words are ordered alphabetically and clockwise.");
+  rule4_size_label.id('main_text');
+  rule4_size_label.position(20, rule4_size_pos_y_offset);
+
+  // Rule 3
+  let rule5_size_pos_y_offset = rule4_size_pos_y_offset + rule4_size_label.size().height + 10;
+
+  rule5_size_label = createDiv("5. You can navigate as you want through the menus,");
+  rule5_size_label.id('main_text');
+  rule5_size_label.position(20, rule5_size_pos_y_offset);
+
+  // Rule 3
+  let rule6_size_pos_y_offset = rule5_size_pos_y_offset + rule5_size_label.size().height;
+
+  rule6_size_label = createDiv("the time only starts after you click on the first city");
+  rule6_size_label.id('main_text');
+  rule6_size_label.position(40, rule6_size_pos_y_offset);
+
+  // 4. Start button
   start_button = createButton('START');
   start_button.mouseReleased(startTest);
-  start_button.position(width/2 - start_button.size().width/2, height/2 - start_button.size().height/2);
+  start_button.position(width/2 - start_button.size().width/2, height/1.3 - start_button.size().height/2);
 }
 
 // Verifies if the student ID is a number, and within an acceptable range
