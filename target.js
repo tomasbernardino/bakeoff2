@@ -1,170 +1,291 @@
-//FIXME: estas variaveis nao podem estar aqui!!!! TEM QUE ESTAR NO WINDOWRESIZED do sketch 
-// Arranjar maneira de as passar para aqui ou simplementar algo parecido
-// Target class (position and width)
-let display        = new Display({ diagonal: display_size }, window.screen);
-PPI                = display.ppi;                      // calculates pixels per inch
-PPCM               = PPI / 2.54;                       // calculates pixels per cm
-let screen_width   = display.width * 2.54;             // screen width
-let screen_height  = display.height * 2.54;            // screen height
-let target_size    = 2;                                // sets the target size (will be converted to cm when passed to createTargets)
-let horizontal_gap = screen_width - target_size * GRID_COLUMNS;// empty space in cm across the x-axis (based on 10 targets per row)
-let vertical_gap   = screen_height - target_size * GRID_ROWS;  // empty space in cm across the y-axis (based on 8 targets per column)
+let RADIUS; // raio do círculo imaginário que contém os targets
+let LABEL_POS;
+var drawing = "pie"; // variável que vai ter o valor "pie" se só tiver desenhado o menu circular, senão irá ser um objecto do tipo Target
+let alternate_color = false;
 
-var drawing = "screen1"; // variável que vai ter o valor "screen1" se tiver a desenhar o primeiro menu, senão irá ser um objecto do tipo Targete
-function drawCurrentScreen(){
-  drawing.draw();
-}
-
-// Os targets tanto podem ser menus e abrir ecras com mais targets como podem ser targets normais que "voltam" para o ecra inicial ao clicar
-// (no fundo sao todos menus na medida que todos abrem um novo ecra, mas so os targets finais é que contam para os hits/misses)
-class Target
-{
-  constructor(x, y, w, l, id, array) 
-  {
-    this.x      = x;
-    this.y      = y;
-    this.width  = w;
-    this.label  = l;
-    this.id     = id;
-    this.drawn  = false;
-    this.array  = array;
-    this.indexed_array = [];
+class Target {
+  constructor(x, y,startAngle,halfAngle,endAngle, w, l, id, array) {
+    this.x = x;
+    this.y = y;
+    this.startAngle = startAngle;
+    this.halfAngle = halfAngle;
+    this.endAngle = endAngle;
+    this.width = w;
+    this.label = l;
+    this.id = id;
+    this.drawn = false;
+    this.array = array;
     this.targets = [];
-    if (id == MENU_ID && (this.label.length === 2 || this.label.length === 3))
-    {
-        this.createSubMenusOrTargets(this.array, 3, this.indexed_array);
+    this.wasClicked = false;
+    if (id == SLICE_ID) {
+      this.createSubMenusOrTargets(this.array);
     }
   }
-  
+
   //Esta é a funcao quye pega no array das cidades e cria os submenus de acordo com os prefixos
   // Depois cria os targets ---- é aqui que se tem de mudar aspetos ao nivel do tamanho e posicionamento dos targets em cada submenu
-  createSubMenusOrTargets(array, size, indexed_array){
-    var r = 0;
-    var c = 0;
-    let t_size = target_size * PPCM;
-    let h_gap = horizontal_gap * PPCM - 80;
-    let v_gap = vertical_gap * PPCM - 80;
-    let h_margin = h_gap / (GRID_COLUMNS -1);
-    let v_margin = v_gap / (GRID_ROWS - 1);
-    
-    if(this.label.length === 2){                  //Quando ainda nao esta no ultimo menu cria os submenus de prefixos de 3                     
-      for (let i = 0; i < array.length; i++) {
-        let prefix = legendas.getString(array[i], 1).substring(0, size);
-      
-        if (!indexed_array[prefix]) {
-            indexed_array[prefix] = [];
-        }
-        indexed_array[prefix].push(array[i]);
-      }
-      console.log("Prefix Array:", indexed_array);
-    }
-    else{                                           //Quando ja esta no ultimo menu so copia o nome das cidades
-      for (let i = 0; i< array.length; i++){
-        let city = legendas.getString(array[i], 1);
-        if (!indexed_array[city]) {
-          indexed_array[city] = [];
-        }
-        indexed_array[city].push(array[i]);
-      }
-      console.log("Indexed Array:", indexed_array);
-    }
+  createSubMenusOrTargets(array) {
 
-    for (key in indexed_array){                               //Cria os targets, se no arrayindexado aquela key so tiver uma cidade entao cria um target normal, 
-      //console.log("Key:",key, "Value:", indexed_array[key]);//se tiver mais que uma cidade cria um submenu com o prefixo
-      let target_x = 40 + (h_margin + 2) * c + t_size/2;        // give it some margin from the left border
-      let target_y = (v_margin + 2) * r + t_size/2;
-      
-      if (indexed_array[key].length > 1){
-        let targetMenu = new Target(target_x, target_y+ 40, t_size, key, MENU_ID, indexed_array[key]);
-        this.targets.push(targetMenu);
-      }
-      else{
-        let legendas_index = indexed_array[key][0];
-        let target = new Target(target_x, target_y + 40 , t_size,legendas.getString(legendas_index,1), legendas.getNum(legendas_index,0), null);
+    let t_size = target_size * windowHeight/28;
+    //print("tamanho do target: ", t_size);
+    let h_gap = t_size+10;
+    //print("h_gap: ", h_gap);
+    let v_gap = 3*t_size/4+10;
+    //print("v_gap: ", v_gap);
+    let start_x = 0;
+    let start_y = 0;
+    let end_x = 0;
+    let end_y = 0;
+    let quadrant = 0;
+
+    let words = array.length;
+
+    if (this.halfAngle < 0) {
+        quadrant = 1;
+        
+        if (this.label === "h") {
+          start_x = 2*windowWidth/3 + 3*t_size/4;
+          start_y = windowHeight/2 - t_size/3;
+        }
+        else{
+          start_x = 2*windowWidth/3 + t_size/2;
+          start_y = windowHeight/3  - t_size/2;
+        }
+        if (this.label === "a") {
+          start_x = 2*windowWidth/3 - 6*t_size/7;
+          start_y = windowHeight/3 - 7*t_size/4;
+          end_x = start_x + Math.min(words,GRID_A_COLUMNS)*h_gap;
+          end_y = start_y + Math.min(words,GRID_ROWS)*v_gap;
+        }
+        else{
+        end_x = start_x + Math.min(words,GRID_COLUMNS)*h_gap;
+        end_y = start_y + Math.min(words,GRID_ROWS)*v_gap;
+        }
+    }
+    else if (this.halfAngle < HALF_PI) {
+        quadrant = 2;
+        start_x = 2*windowWidth/3 + t_size/4;
+        start_y = 2*windowHeight/3;
+        end_y = start_y + Math.min(words,GRID_ROWS)*v_gap;
+        end_x = start_x + Math.min(words,GRID_COLUMNS)*h_gap;
+    } 
+    else if (this.halfAngle < PI) {
+        quadrant = 3;  
+        end_x = windowWidth/3 + t_size/2;
+        end_y = start_y + Math.min(words,GRID_ROWS)*v_gap ;
+        start_y = 2*windowHeight/3 - t_size/2;
+        start_x = end_x - Math.min(words,GRID_COLUMNS)*h_gap;
+    }
+    else {
+        quadrant = 4;  
+        if (this.label === "t") {
+          start_y = windowHeight/2 - t_size/2;
+          end_x = windowWidth/3 + t_size/5;
+        }
+        else{
+          start_y = windowHeight/3 - t_size;
+          end_x = windowWidth/3 + t_size; 
+        }
+        start_x = end_x - Math.min(words,GRID_COLUMNS)*h_gap;
+        end_y = start_y + Math.min(words,GRID_ROWS)*v_gap;
+    }
+    //print("label:",this.label,"start_x: ", start_x, "start_y: ", start_y, "end_x: ", end_x, "end_y: ", end_y, "quadrant: ", quadrant, "target size: ", t_size, "words: ", words, "h_gap: ", h_gap, "v_gap: ", v_gap)
+
+    // give it some margin from the left border 
+    let target_x = start_x        // give it some margin from the left border
+    let target_y = start_y        // give it some margin from the top border
+    let row_count = 0;
+    for (let i = 0; i<words; i++){
+        let legendas_index = array[i];
+        let target = new Target(target_x, target_y, 0, 0, 0, t_size, legendas.getString(legendas_index, 1), legendas.getNum(legendas_index, 0), null);
         this.targets.push(target);
-      }
-      if (c < GRID_COLUMNS -1) c++; //Serve para iterar pela grid como estava no layout inicial
-      else{c = 0; r++;}
-      if (r > GRID_ROWS) break;
-    }
-  } 
 
-  compareLabel(target){
+        if((this.label!== "a" && (i+1)%GRID_COLUMNS==0)||(this.label === "a" && (i+1)%GRID_A_COLUMNS==0)){
+            row_count++;
+            if(quadrant == 1 && this.label !== "h"){
+              if(this.label === "a"){
+                start_x += (4-row_count)*h_gap/4;
+                end_x += h_gap;
+              }
+              else{
+                start_x += h_gap/2;
+                end_x += h_gap/2;
+              }
+              target_x = start_x;
+              target_y += v_gap;
+            }
+            else if(quadrant == 2){
+                start_x -= h_gap/2;
+                target_y += v_gap;
+
+              target_x = start_x;
+            }
+            else if(quadrant == 3){
+              end_x += 3*h_gap/7;
+              target_x = end_x - Math.min(words-i-1,GRID_COLUMNS)*h_gap;
+                target_y += v_gap;
+
+            }
+            else if(quadrant==4 && this.label !== "t"){
+              end_x -= h_gap;
+              target_x = end_x - Math.min(words-i-1,GRID_COLUMNS)*h_gap;
+              target_y += v_gap;
+            }
+            else if(this.label === "t"){
+              target_y += v_gap;
+            }
+            
+        } 
+        else{
+            target_x += h_gap;
+        }
+    }  
+  }
+
+  compareLabel(target) {
     return this.label === target.label
   }
 
   // Sets the draw state of a target
-  setDrawn(state)
-  {
+  setDrawn(state) {
     this.drawn = state;
   }
-  getID(){
+  getID() {
     return this.id;
   }
 
-  getDrawn()
-  {
+  getDrawn() {
     return this.drawn;
   }
 
-  getMenu()
-  {
+  getMenu() {
     return this.menu;
   }
 
-  getLabel()
-  {
+  getLabel() {
     return this.label;
   }
-  
+  setWasClicked(){
+    this.wasClicked = true;
+  }
+
+  addDistance() {
+    this.x = GAP_SIZE * Math.cos(this.halfAngle)*3 + CX;
+    this.y = GAP_SIZE * Math.sin(this.halfAngle)*3 + CY;
+  }
+  delDistance() {
+    this.x = GAP_SIZE * Math.cos(this.halfAngle) + CX;
+    this.y = GAP_SIZE * Math.sin(this.halfAngle) + CY;
+  }
+
   // Checks if a mouse click took place
   // within the target
-  clicked(mouse_x, mouse_y)
-  {
-    console.log("Mouse_x:", mouse_x, "Mouse_y:", mouse_y, "X:", this.x, "Y:", this.y, "Width:", this.width);
-    return dist(this.x, this.y, mouse_x, mouse_y) < this.width / 2;
+
+  clicked(mouse_x, mouse_y) {
+    let distance = 0; 
+    // Calcula o ângulo entre o centro da fatia e o ponto de clique
+    if(this.id === SLICE_ID){
+      let angle = atan2(mouse_y - this.y, mouse_x - this.x);
+      let positive_startAngle = this.startAngle;
+      let positive_endAngle = this.endAngle;
+      if(this.startAngle < 0){
+        positive_startAngle = this.startAngle + TWO_PI;
+        positive_endAngle = this.endAngle + TWO_PI;
+      }
+
+      // Ajusta o ângulo para o intervalo [0, TWO_PI]
+      if (angle < 0) {
+        angle += TWO_PI;
+      }
+      else if (angle > this.startAngle && angle < this.endAngle && this.startAngle < 0 && this.endAngle > 0){ // no caso de ser o H, tem startAngle negativo e endAngle positivo
+        angle += TWO_PI;
+      }
+;
+      // Verifica se o ângulo está dentro do intervalo da fatia
+      if (angle >= positive_startAngle && angle <= positive_endAngle) {
+        // Calcula a distância entre o ponto de clique e o centro da fatia
+        distance = dist(mouse_x, mouse_y, this.x, this.y);
+        // Verifica se a distância está dentro do raio da fatia
+        if(distance <= this.width / 2){
+          if(this.id !== SLICE_ID)
+            click_sound.play();
+          return true;
+        }
+        return false;
+      }
+    }
+    else{
+      if(dist(mouse_x, mouse_y, this.x, this.y) <= this.width / 2){
+        if(this.id !== SLICE_ID)
+        click_sound.play();
+        return true;
+      }
+      return false;
+    }
+
   }
   
   // Draws the target (i.e., a circle)
   // and its label
-  delete(){
-    if(this.id === MENU_ID){
-      for (let i = 0; i < this.targets.length; i++){
+  delete() {
+    if (this.id === SLICE_ID) {
+      for (let i = 0; i < this.targets.length; i++) {
         this.targets[i].drawn = false;
       }
     }
     //else{
-      this.drawn = false;
+    this.drawn = false;
     //}
   }
 
-  draw()
-  {
-    if(drawing !== this){
+  draw() {
+    let is_slice = false;
+    
       this.drawn = true;
       // Draw label 
-      fill(color(155,155,155));                
-      circle(this.x, this.y, this.width);
 
-      textFont("Arial", 12); //FIXME: mudar todas as letras para Serif
-      fill(color(255,255,255));
-      textAlign(CENTER);
-      text(this.label, this.x, this.y);
-    }
-
-    else {
-      
-      //background(color(0,0,0));        // sets background to black
-      
-      if(this.id === MENU_ID){
-        for (let i = 0; i < this.targets.length; i++){
-          this.targets[i].draw();
-          //console.log("Loop do id === MENU_ID");
+      if (this.id === SLICE_ID) {
+        if(alternate_color){
+          fill(color(25, 55, 62));
+          alternate_color = false;
         }
+        else{
+          fill(color(32, 125, 145));
+          alternate_color = true;
+        }
+        arc(this.x, this.y, RADIUS, RADIUS, this.startAngle, this.endAngle, PIE);
+        textFont("Serif", 40); 
+        is_slice = true;
+      } else {
+        fill(color(79,79,79));
+        if(this.wasClicked){
+          //print("was clicked\n");
+          stroke('rgba(0, 255, 0, 0.25)');
+          strokeWeight(8);
+        }
+        rect(this.x - this.width/2, this.y - this.width/4, this.width, 3*this.width/4, 30);
+        //print("sem stroke\n");
+        noStroke();
+        textFont("Serif", 35); 
       }
-      else{ 
-        //console.log("Drawing para o screen 1");
-        drawing = "screen1";
+
+      fill(color(255, 255, 255));
+      textAlign(CENTER);
+      if(!is_slice){
+        text(this.label[1].toUpperCase(), this.x, this.y);
+        textFont("Serif", 22);
+        text(this.label, this.x, this.y + this.width/3);
+      }
+      else{
+        text(this.label.toUpperCase(), LABEL_POS * Math.cos(this.halfAngle) + this.x, LABEL_POS * Math.sin(this.halfAngle) + this.y);
+      }
+      
+    
+    if (drawing === this) {
+      if (this.id === SLICE_ID) {
+        for (let i = 0; i < this.targets.length; i++) {
+          this.targets[i].draw();
+        }
       }
     }
   }
