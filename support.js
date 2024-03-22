@@ -69,21 +69,21 @@ function drawUserIDScreen()
   rule3_size_label.id('main_text');
   rule3_size_label.position(20, rule3_size_pos_y_offset);
 
-  // Rule 3
+  // Rule 4
   let rule4_size_pos_y_offset = rule3_size_pos_y_offset + rule3_size_label.size().height + 10;
 
   rule4_size_label = createDiv("4. The words are ordered alphabetically and clockwise.");
   rule4_size_label.id('main_text');
   rule4_size_label.position(20, rule4_size_pos_y_offset);
 
-  // Rule 3
+  // Rule 5
   let rule5_size_pos_y_offset = rule4_size_pos_y_offset + rule4_size_label.size().height + 10;
 
   rule5_size_label = createDiv("5. You can navigate as you want through the menus,");
   rule5_size_label.id('main_text');
   rule5_size_label.position(20, rule5_size_pos_y_offset);
 
-  // Rule 3
+  // Rule 6
   let rule6_size_pos_y_offset = rule5_size_pos_y_offset + rule5_size_label.size().height;
 
   rule6_size_label = createDiv("the time only starts after you click on the first city");
@@ -134,7 +134,15 @@ function startTest()
     display_size_form.remove();
     display_size_label.remove();
     start_button.remove();  
-
+    rules_size_label.remove();
+    rule1_size_label.remove();
+    rule11_size_label.remove();
+    rule2_size_label.remove();
+    rule3_size_label.remove();
+    rule4_size_label.remove();
+    rule5_size_label.remove();
+    rule6_size_label.remove();
+    
     // Goes fullscreen and starts test
     fullscreen(!fullscreen());
   }

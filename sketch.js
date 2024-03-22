@@ -1,7 +1,7 @@
 //IDEAS: para dar para voltar para tras entre menus a ideia seria cada target ter o seu parent e ao clicar para voltar 
 //       para tras o drawing mudaria para o parent 
 //       ou algo como guardar o ultimo menu em que esteve (duvidoso, se estivermos no terceiro ecra e quisermos voltar 2 para tras para o menu inicial)
-
+// desenhar uma seta de 360º a comecar no target que tem o A para ser mais fácil visualizar a ordem alfabética
 // Bake-off #2 -- Seleção em Interfaces Densas
 // IPM 2023-24, Período 3
 // Entrega: até às 23h59, dois dias úteis antes do sexto lab (via Fenix)
@@ -33,9 +33,10 @@ let attempt = 0;      // users complete each test twice to account for practice 
 
 // Target list and layout variables
 let targets = [];
-const GRID_ROWS = 8;      // We divide our 80 targets in a 8x10 grid
-const GRID_COLUMNS = 10;     // We divide our 80 targets in a 8x10 grid
-const MENU_ID = -1;    // The ID of the target that is not the final target
+const GRID_ROWS = 5;      // We divide our 80 targets in a 8x10 grid
+const GRID_COLUMNS = 3;     // We divide our 80 targets in a 8x10 grid
+const GRID_A_COLUMNS = 4; // We divide our 80 targets in a 8x10 grid
+const SLICE_ID = -1;    // The ID of the target that is not the final target
 
 //FIXME: estas variaveis nao podem estar aqui!!!! TEM QUE ESTAR NO WINDOWRESIZED do sketch 
 // Arranjar maneira de as passar para aqui ou simplementar algo parecido
@@ -46,12 +47,11 @@ var screen_height;
 var target_size;
 var horizontal_gap;
 var vertical_gap;
+let CX;
+let CY;
 
-
-var CX = 1933/2; //FIXME corrigir centro do ecrã x
-var CY = 500; //centro do ecrã y
-var GAP_SIZE = 2;
-var MAX_DISTANCE = 0.15;
+var GAP_SIZE = 10;
+//var MAX_DISTANCE = 0.15;
 var MAXRAD = Math.PI * 2; // 360 º
 
 
@@ -106,43 +106,59 @@ function setup() {
   randomizeTrials();         // randomize the trial order at the start of execution
   drawUserIDScreen();        // draws the user start-up screen (student ID and display size)
 }
-//FIXME mudar nome da função
-// pega nas legendas e subdivide em arrays orgnaizados por prefixo (2 letras)
-function createMapSet(indexed_array, size) {
 
+function normalizeString(str) {
+  // Normalizar caracteres acentuados para caracteres não acentuados
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function getSufix(str, size) {
+  let normalized = normalizeString(str);
+  return normalized.substring(normalized.length - size, normalized.length);
+}
+
+//FIXME mudar nome da função
+// pega nas legendas e subdivide em arrays orgnaizados por sufixos
+function createMapSet(size) {
+  let unordered_index_array = {};
   for (let i = 0; i < legendas.getRowCount(); i++) {
     let temp = legendas.getString(i, 1);
-    let sufix = temp.substring(temp.length - size, temp.length);
+    let sufix = getSufix(temp, size);
+    
     print("Sufixo: ",sufix);
-    //let prefix = legendas.getString(i, 1).substring(0, size);
+      if (!unordered_index_array[sufix]) {
+        unordered_index_array[sufix] = [];
+      }
+      unordered_index_array[sufix].push(i);
+  }
+      //let prefix = legendas.getString(i, 1).substring(0, size);
 
 //    if (sufix.localeCompare("Bé") === 0) {
 //      if (!indexed_array["Be"]) {
 //        indexed_array["Be"] = [];
 //      }
 //      indexed_array["Be"].push(i); // FIXME afinal vamos guardar o INDICE NA TABELA DE LEGENDAS
-//      // para conseguirmos sempre sabê-lo em tempo constante, nao achamos outra maneira de arranjar o ID para o target 
-//    }                              // ANTES: legendas.getString(i, 1) -> passavamos o nome da cidade e nao tinhamos o ID 
-//    else {
-      if (!indexed_array[sufix]) {
-        indexed_array[sufix] = [];
-      }
-      indexed_array[sufix].push(i);
-    //}
+  let sortedKeys = Object.keys(unordered_index_array).sort();
+  // Criar indexed_array ordenado
+  let indexed_array = {};
+  for (let i = 0; i < sortedKeys.length; i++) {
+    let key = sortedKeys[i];
+    indexed_array[key] = unordered_index_array[key];
   }
-  //indexed_array["Be"][0]
+  
+  return indexed_array;
 }
 
 
 
-function drawScreen1() {
+function drawPIE() {
   for (let i = 0; i < targets.length; i++) {
     targets[i].draw();
     //print(targets[i].getLabel());
   }
 }
 
-function screen1remove() {
+function PIEremove() {
   for (let i = 0; i < targets.length; i++) {
     targets[i].setDrawn(false);
   }
@@ -162,18 +178,18 @@ function draw() {
 
     // Draw all targets
     // desenha o ecra de acordo com o que esta no drawing (screen1 =  inicial), se for apos carregar num target(menu) drawing = target clicado
-    if (drawing === "screen1") {
-      drawScreen1(); /*
+    //if (drawing === "pie") {
+    drawPIE(); /*
         for (let i = 0; i < targets.length; i++) {
           targets[i].draw();
         //print(targets[i].getLabel());
       }
     }
       */
-    }
-    else {
-      drawCurrentScreen();
-    }
+    //}
+    //if(drawing !== "pie"){
+    //  drawCurrentScreen();
+    //}
 
     //for (var i = 0; i < legendas.getRowCount(); i++) targets[i].draw();
 
@@ -249,59 +265,55 @@ function mousePressed() {
   // Only look for mouse releases during the actual test
   // (i.e., during target selections)
   if (draw_targets) {
-    let aux; //vai guardar a lista de targets do menu atual(screen1 ou outro menu)
-    let flag = false;
+    let aux = []; //vai guardar a lista de targets do menu atual(screen1 ou outro menu)
+    //let flag = false;
 
-    if (drawing === "screen1") {
-      aux = targets;
-    }
-    else { //caso outro menu/submenu
-      aux = drawing.targets;
+    //if (drawing === "pie") {
+      aux.push(targets);
+    //}
+    if (drawing!=="pie") { //caso outro menu/submenu
+      aux.push(drawing.targets);
     }
 
     for (let i = 0; i < aux.length; i++) {
+      for(let j = 0; j < aux[i].length; j++){
+        let target = aux[i][j];
+        // Check if the user clicked over one of the targets
+        if (target.clicked(mouseX, mouseY)) {
+          //flag = true;
 
-      let target = aux[i];
-      // Check if the user clicked over one of the targets
-      if (target.clicked(mouseX, mouseY)) {
-        flag = true;
-
-        if (target.getID() === MENU_ID) {
-          if (drawing === "screen1") screen1remove();
-          else {
-            drawing.delete();
-          }
-          drawing = target; // se clicar num target, já apagou (hitboxes) os que estavam no ecrã e agora vai indicar ao draw que pode desenhar o menu clicado
-        }
-        else {
-          if (drawing === "screen1") {
-            screen1remove();
+          if (target.getID() === SLICE_ID) {
+            if (drawing !== "pie") {
+            //else {
+              drawing.delete();
+            }
+            drawing = target; // se clicar num target, já apagou (hitboxes) os que estavam no ecrã e agora vai indicar ao draw que pode desenhar o menu clicado
           }
           else {
-            drawing.delete();
+            //if (drawing !== "pie") {
+            //  drawing.delete();
+            //}
+            //drawing = "pie"; //no caso de ter clicado num target final, irá voltar ao ecrã inicial
+
+            // Checks if it was the correct target
+            print("Target id" + targets[i].id + "trial" + (legendas.getNum(trials[current_trial], 0)));
+
+            if (target.id === legendas.getNum(trials[current_trial], 0)) hits++;
+            else misses++;
+
+            current_trial++;              // Move on to the next trial/target
           }
-          drawing = "screen1"; //no caso de ter clicado num target final, irá voltar ao ecrã inicial
-
-          // Checks if it was the correct target
-          print("Target id" + targets[i].id + "trial" + (legendas.getNum(trials[current_trial], 0)));
-
-          if (target.id === legendas.getNum(trials[current_trial], 0)) hits++;
-          else misses++;
-
-          current_trial++;              // Move on to the next trial/target
+          break;
         }
-        break;
       }
-
-
     }
 
-    if (!flag && drawing !== "screen1") {
-      drawing.delete();
-      drawing = "screen1";
-    }
-
-    flag = false;
+    //if (!flag && drawing !== "pie") {
+    //  drawing.delete();
+    //  drawing = "pie";
+    //}
+    //
+    //flag = false;
 
     // Check if the user has completed all trials
     if (current_trial === NUM_OF_TRIALS) {
@@ -346,71 +358,71 @@ function continueTest() {
 
 //!!!!!!!!!!!!!!!!!! aqui é que se pode mudar o layout/posicionamento e tamanho dos targets !!!!!!!!!!!!!!!!!!!!!!!!!
 function createTargets(target_size, horizontal_gap, vertical_gap, windowWidth, windowHeight) {
-  let indexed_array = {};
-  createMapSet(indexed_array, 1); // Chama a função createMapSet
+  let indexed_array = createMapSet(1); // Chama a função createMapSet
   console.log(indexed_array);
   var r = 0;
   var c = 0;
-
+  RADIUS = windowWidth / 3.15;
+  LABEL_POS = 4.3* PPCM;
   h_margin = horizontal_gap / (GRID_COLUMNS - 1);
   v_margin = vertical_gap / (GRID_ROWS - 1);
 
-  let menus = 0;
+  let menus = Object.keys(indexed_array).length;
   let words = 0;
-
-  for (key in indexed_array) {
-
-    if (indexed_array[key].length > 1) {
-      menus++;
-    } else {
-      words++;
-    }
-  }
-
 
   print("words: ", words, " menus: ", menus);
 
-  var angleIncrement = (2 * Math.PI) / menus;
-  var radius = windowWidth / 70;
+  //var angleIncrement = (2 * Math.PI) / menus;
+  //var radius = windowWidth / 70;
   var loopCounter = 0;
 
-  print("radius: ", radius, " angleIncrement: ", angleIncrement);
+  //print("radius: ", radius, " angleIncrement: ", angleIncrement);
   print("menus: ", menus);
+  
   for (key in indexed_array) {
+    let cx;
+    let cy;
     let sliceSize = MAXRAD / menus;
-    let fromRadians = MAXRAD * (loopCounter / menus);
+    let fromRadians = MAXRAD * (loopCounter / (menus+words)) - HALF_PI;
     let toRadians = fromRadians + sliceSize;
     let halfRadians = fromRadians + (sliceSize / 2);
-    let cx = GAP_SIZE * Math.cos(halfRadians) + CX; // x da ponta da fatia
-    let cy = GAP_SIZE * Math.cos(halfRadians) + CY;// y da ponta da fatia
-      
+    if(key.localeCompare("a") === 0){
+      cx = GAP_SIZE * Math.cos(halfRadians)*5 + CX; // x da ponta da fatia
+      cy = GAP_SIZE * Math.sin(halfRadians)*5 + CY;// y da ponta da fatia
+    }
+    else{    
+      cx = GAP_SIZE * Math.cos(halfRadians) + CX; // x da ponta da fatia
+      cy = GAP_SIZE * Math.sin(halfRadians) + CY;// y da ponta da fatia}
+    }
     //var angle = angleIncrement * loopCounter;
     print("Key:", key, "Value:", indexed_array[key]);
     // let target_x = 40 + (h_margin + target_size) * c + target_size / 2;        // give it some margin from the left border
     // let target_y = (v_margin + target_size) * r + target_size / 2;
 
     //menu
-    if (indexed_array[key].length > 1) {
+    //if (indexed_array[key].length > 1) {
 
-      let targetMenu = new Target(cx, cy, fromRadians, halfRadians, toRadians,  RADIUS, key, MENU_ID, indexed_array[key]);
+      let targetMenu = new Target(cx, cy, fromRadians, halfRadians, toRadians, RADIUS, key, SLICE_ID, indexed_array[key]);
       targets.push(targetMenu);
-      loopCounter++;
       
-    } else{
+      
+    //} else{
     
-      let target_x = target_size * c + windowWidth / 2.0 - words / 2.0 * target_size + target_size / 2;        // give it some margin from the left border
-      let target_y = (v_margin + target_size) * r + target_size / 2 + windowHeight / 5 * 3.8;
+      //let target_x = target_size * c + windowWidth / 2.0 - words / 2.0 * target_size + target_size / 2;        // give it some margin from the left border
+      //let target_y = (v_margin + target_size) * r + target_size / 2 + windowHeight / 5 * 3.8;
 
-      let legendas_index = indexed_array[key][0];
-      let target = new Target(target_x, target_y + 40, fromRadians, halfRadians, toRadians, 100, legendas.getString(legendas_index, 1), legendas.getNum(legendas_index, 0), null);
-      targets.push(target);
+    //  let legendas_index = indexed_array[key][0];
+    //  let target = new Target(cx, cy, fromRadians, halfRadians, toRadians, RADIUS, legendas.getString(legendas_index, 1), legendas.getNum(legendas_index, 0), null);
+    // targets.push(target);
 
-      if (c < GRID_COLUMNS - 1) c++; //Serve para iterar pela grid do layout original
-      else { c = 0; r++; }
-      if (r > GRID_ROWS) break;
+      //if (c < GRID_COLUMNS - 1) c++; //Serve para iterar pela grid do layout original
+      //else { c = 0; r++; }
+      //if (r > GRID_ROWS) break;
     
-    }
+    
+    loopCounter++;
     print("windowWidth: ", windowWidth, " windowHeight: ", windowHeight);
+    print("screen_width: ", screen_width, " screen_height: ", screen_height); 
 
   }
 
@@ -455,10 +467,11 @@ function windowResized() {
     //// Below we find out out white space we can have between 2 cm targets
     screen_width   = display.width * 2.54;             // screen width
     screen_height  = display.height * 2.54;            // screen height
-    target_size    = 3;                                // sets the target size (will be converted to cm when passed to createTargets)
+    target_size    = 3.5;                                // sets the target size (will be converted to cm when passed to createTargets)
     horizontal_gap = screen_width - target_size * GRID_COLUMNS;// empty space in cm across the x-axis (based on 10 targets per row)
     vertical_gap   = screen_height - target_size * GRID_ROWS;  // empty space in cm across the y-axis (based on 8 targets per column)
-
+    CX = windowWidth/2; //FIXME corrigir centro do ecrã x
+    CY = windowHeight/2 - 40; //centro do ecrã y
     // Creates and positions the UI targets according to the white space defined above (in cm!)
     // 80 represent some margins around the display (e.g., for text)
     createTargets(target_size * windowHeight / 28, horizontal_gap * PPCM - 80, vertical_gap * PPCM - 80, windowWidth, windowHeight);

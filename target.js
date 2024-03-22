@@ -1,9 +1,6 @@
-let RADIUS = 700; // raio do círculo imaginário que contém os targets
-let LABEL_POS = 280;
-var drawing = "screen1"; // variável que vai ter o valor "screen1" se tiver a desenhar o primeiro menu, senão irá ser um objecto do tipo Targete
-function drawCurrentScreen() {
-  drawing.draw();
-}
+let RADIUS; // raio do círculo imaginário que contém os targets
+let LABEL_POS;
+var drawing = "pie"; // variável que vai ter o valor "pie" se só tiver desenhado o menu circular, senão irá ser um objecto do tipo Target
 
 // Os targets tanto podem ser menus e abrir ecras com mais targets como podem ser targets normais que "voltam" para o ecra inicial ao clicar
 // (no fundo sao todos menus na medida que todos abrem um novo ecra, mas so os targets finais é que contam para os hits/misses)
@@ -19,115 +16,111 @@ class Target {
     this.id = id;
     this.drawn = false;
     this.array = array;
-    this.indexed_array = [];
     this.targets = [];
-    if (id == MENU_ID && (this.label.length === 1 || this.label.length === 2)) {
-      this.createSubMenusOrTargets(this.array, 2, this.indexed_array);
+    if (id == SLICE_ID) {
+      this.createSubMenusOrTargets(this.array);
     }
   }
 
   //Esta é a funcao quye pega no array das cidades e cria os submenus de acordo com os prefixos
   // Depois cria os targets ---- é aqui que se tem de mudar aspetos ao nivel do tamanho e posicionamento dos targets em cada submenu
-  createSubMenusOrTargets(array, size, indexed_array) {
-    var r = 0;
-    var c = 0;
+  createSubMenusOrTargets(array) {
+
     let t_size = target_size * windowHeight/28;
-    let h_gap = horizontal_gap * PPCM - 80;
-    let v_gap = vertical_gap * PPCM - 80;
-//    //let h_margin = h_gap / (GRID_COLUMNS - 1);
-//    //let v_margin = v_gap / (GRID_ROWS - 1);
-//    print("about to check the label length", this.label.length);
-//    if (this.label.length === ) {                  //Quando ainda nao esta no ultimo menu cria os submenus de prefixos de 3                     
-//      for (let i = 0; i < array.length; i++) {
-//        let temp = legendas.getString(array[i], 1);
-//        let sufix = temp.substring(temp.length -size, temp.length);
-//        //let prefix = legendas.getString(array[i], 1).substring(0, size);
-//        print("Sufix target:", sufix);
-//        if (!indexed_array[sufix]) {
-//          indexed_array[sufix] = [];
-//        }
-//        indexed_array[sufix].push(array[i]);
-//      }
-//      console.log("Prefix Array:", indexed_array);
-//    }
-//    else {                                           //Quando ja esta no ultimo menu so copia o nome das cidades
-      for (let i = 0; i < array.length; i++) {
-        let city = legendas.getString(array[i], 1);
-        if (!indexed_array[city]) {
-          indexed_array[city] = [];
+    let h_gap = t_size;//horizontal_gap * PPCM - 80;
+    let v_gap = t_size+20;//vertical_gap * PPCM - 80;
+    let start_x = 0;
+    let start_y = 0;
+    let end_x = 0;
+    let end_y = 0;
+    let quadrant = 0;
+
+    let words = array.length;
+
+    if (this.halfAngle < 0) {
+        quadrant = 1;
+        
+        if (this.label === "h") {
+          start_x = 2*windowWidth/3 + t_size/2;
+          start_y = windowHeight/2 - t_size/3;
         }
-        indexed_array[city].push(array[i]);
-      }
-      console.log("Indexed Array:", indexed_array);
-   // }
-
-    // for (key in indexed_array) {                               //Cria os targets, se no arrayindexado aquela key so tiver uma cidade entao cria um target normal, 
-    //   //console.log("Key:",key, "Value:", indexed_array[key]);//se tiver mais que uma cidade cria um submenu com o prefixo
-    //   let target_x = 40 + (h_margin + 2) * c + t_size / 2;        // give it some margin from the left border
-    //   let target_y = (v_margin + 2) * r + t_size / 2;
-
-    //   if (indexed_array[key].length > 1) {
-    //     let targetMenu = new Target(target_x, target_y + 40, t_size, key, MENU_ID, indexed_array[key]);
-    //     this.targets.push(targetMenu);
-    //   }
-    //   else {
-    //     let legendas_index = indexed_array[key][0];
-    //     let target = new Target(target_x, target_y + 40, t_size, legendas.getString(legendas_index, 1), legendas.getNum(legendas_index, 0), null);
-    //     this.targets.push(target);
-    //   }
-    //   if (c < GRID_COLUMNS - 1) c++; //Serve para iterar pela grid como estava no layout inicial
-    //   else { c = 0; r++; }
-    //   if (r > GRID_ROWS) break;
-    // }
-
-    let menus = 0;
-    let words = 0;
-
-    for (key in indexed_array) {
-
-      if (indexed_array[key].length > 1) {
-        menus++;
-      } else {
-        words++;
-      }
+        else{
+          start_x = 2*windowWidth/3;
+          start_y = windowHeight/3  - t_size/2;
+        }
+        if (this.label === "a") {
+          start_x = 2*windowWidth/3 - 5*t_size/6;
+          start_y = windowHeight/3 - 3*t_size/2;
+          end_x = start_x + Math.min(words,GRID_A_COLUMNS)*h_gap;
+          end_y = start_y + Math.min(words,GRID_ROWS)*v_gap;
+        }
+        else{
+        end_x = start_x + Math.min(words,GRID_COLUMNS)*h_gap;
+        end_y = start_y + Math.min(words,GRID_ROWS)*v_gap;
+        }
     }
+    else if (this.halfAngle < HALF_PI) {
+        quadrant = 2;
+        start_x = 2*windowWidth/3;
+        start_y = 2*windowHeight/3;
+        end_y = start_y + Math.min(words,GRID_ROWS)*v_gap;
+        end_x = start_x + Math.min(words,GRID_COLUMNS)*h_gap;
+    } 
+    else if (this.halfAngle < PI) {
+        quadrant = 3;  
+        end_x = windowWidth/3 + t_size/2;
+        end_y = start_y + Math.min(words,GRID_ROWS)*v_gap ;
+        start_y = 2*windowHeight/3 - t_size/2;
+        start_x = end_x - Math.min(words,GRID_COLUMNS)*h_gap;
+    }
+    else {
+        quadrant = 4;  
+        if (this.label === "t") {
+          start_y = windowHeight/2 - t_size/2;
+          end_x = windowWidth/3 + t_size/2;
+        }
+        else{
+          start_y = windowHeight/3 - t_size;
+          end_x = windowWidth/3 + t_size; 
+        }
+        start_x = end_x - Math.min(words,GRID_COLUMNS)*h_gap;
+        end_y = start_y + Math.min(words,GRID_ROWS)*v_gap;
+    }
+    
 
-    menus = menus + words;
-    words = 0;
-
-    print("words: ", words, " menus: ", menus);
-
-    var angleIncrement = (2 * Math.PI) / menus;
-    var radius = windowWidth/70;
-    var loopCounter = 0;
-
-    print("radius: ", radius, " angleIncrement: ", angleIncrement);
-
-    for (key in indexed_array) {
-
-      var angle = angleIncrement * loopCounter;
-      print("Key:", key, "Value:", indexed_array[key]);
-      // let target_x = 40 + (h_margin + target_size) * c + target_size / 2;        // give it some margin from the left border
-      // let target_y = (v_margin + target_size) * r + target_size / 2;
-
-      let menu_x = windowWidth / 2 + (radius * menus + 55 / menus) * Math.cos(angle - Math.PI / 2);
-      let menu_y = windowHeight / 1.8 + (radius * menus + 55 / menus) * Math.sin(angle - Math.PI / 2);
-      //menu
-      if (indexed_array[key].length > 1) {
-
-        let targetMenu = new Target(menu_x, menu_y, t_size, key, MENU_ID, indexed_array[key]);
-        this.targets.push(targetMenu);
-
-      } else if (indexed_array[key].length === 1){
-        let legendas_index = indexed_array[key][0];
-        let target = new Target(menu_x, menu_y, t_size, legendas.getString(legendas_index, 1), legendas.getNum(legendas_index, 0), null);
-        this.targets.push(target);
-      }
-
+    // give it some margin from the left border
+    let target_x = start_x        // give it some margin from the left border
+    let target_y = start_y       // give it some margin from the top border
+    for (let i = 0; i<words; i++){
+   
+      let legendas_index = array[i];
+      let target = new Target(target_x, target_y, 0, 0, 0, t_size, legendas.getString(legendas_index, 1), legendas.getNum(legendas_index, 0), null);
+      this.targets.push(target);
       
-      loopCounter++;
-
-    }
+      if(target_x + h_gap === end_x){
+        if(quadrant == 1 && this.label !== "h"){
+          start_x += h_gap;
+          end_x += h_gap;
+          target_x = start_x;
+        }
+        else if(quadrant == 2){
+          start_x -= h_gap;
+          target_x = start_x;
+        }
+        else if(quadrant == 3){
+          end_x += h_gap;
+          target_x = end_x - Math.min(words-i-1,GRID_COLUMNS)*h_gap;
+        }
+        else if(quadrant==4 && this.label !== "t"){
+          end_x -= h_gap;
+          target_x = end_x - Math.min(words-i-1,GRID_COLUMNS)*h_gap;
+        }
+        target_y += v_gap;
+      }
+      else{
+        target_x += h_gap;
+      }
+    }  
   }
 
   compareLabel(target) {
@@ -159,28 +152,47 @@ class Target {
 
   clicked(mouse_x, mouse_y) {
     // Calcula o ângulo entre o centro da fatia e o ponto de clique
-    let angle = atan2(mouse_y - this.y, mouse_x - this.x);
-  
-    // Ajusta o ângulo para o intervalo [0, TWO_PI]
-    if (angle < 0) {
-      angle += TWO_PI;
+    if(this.id === SLICE_ID){
+      let angle = atan2(mouse_y - this.y, mouse_x - this.x);
+      print("angle: ", angle, "startAngle: ", this.startAngle, "endAngle: ", this.endAngle)
+      let positive_startAngle = this.startAngle;
+      let positive_endAngle = this.endAngle;
+      if(this.startAngle < 0){
+        positive_startAngle = this.startAngle + TWO_PI;
+        positive_endAngle = this.endAngle + TWO_PI;
+      }
+
+      // Ajusta o ângulo para o intervalo [0, TWO_PI]
+      if (angle < 0) {
+        angle += TWO_PI;
+      }
+      else if (angle > this.startAngle && angle < this.endAngle && this.startAngle < 0 && this.endAngle > 0){ // no caso de ser o H, tem startAngle negativo e endAngle positivo
+        angle += TWO_PI;
+      }
+
+      print("angle: ", angle, "startAngle: ", positive_startAngle, "endAngle: ", positive_endAngle)
+      print("o target",this.label,"id: ",this.id, "foi clicado");
+      // Verifica se o ângulo está dentro do intervalo da fatia
+      if (angle >= positive_startAngle && angle <= positive_endAngle) {
+        // Calcula a distância entre o ponto de clique e o centro da fatia
+        let distance = dist(mouse_x, mouse_y, this.x, this.y);
+        print(", retornou:", distance <= this.width / 2)
+        // Verifica se a distância está dentro do raio da fatia
+        return distance <= this.width / 2;
+      } else {
+        return false;
+      }
     }
-    // Verifica se o ângulo está dentro do intervalo da fatia
-    if (angle >= this.startAngle && angle <= this.endAngle) {
-      // Calcula a distância entre o ponto de clique e o centro da fatia
-      let distance = dist(mouse_x, mouse_y, this.x, this.y);
-  
-      // Verifica se a distância está dentro do raio da fatia
-      return distance <= this.width / 2;
-    } else {
-      return false;
+    else{
+      return dist(mouse_x, mouse_y, this.x, this.y) <= this.width / 2;
     }
+
   }
   
   // Draws the target (i.e., a circle)
   // and its label
   delete() {
-    if (this.id === MENU_ID) {
+    if (this.id === SLICE_ID) {
       for (let i = 0; i < this.targets.length; i++) {
         this.targets[i].drawn = false;
       }
@@ -191,21 +203,20 @@ class Target {
   }
 
   draw() {
-    let is_menu= false;
-    if (drawing !== this) {
+    let is_slice = false;
+    
       this.drawn = true;
       // Draw label 
 
-      if (this.id === MENU_ID) {
+      if (this.id === SLICE_ID) {
         fill(color(100, 100, 100));
         arc(this.x, this.y, RADIUS, RADIUS, this.startAngle, this.endAngle, PIE);
-        textFont("Serif", 40); //FIXME: mudar todas as letras para Serif
-        is_menu = true;
+        textFont("Serif", 40); 
+        is_slice = true;
       } else {
         fill(color(50, 50, 50));
         circle(this.x, this.y, this.width);
-        textFont("Serif", 24); //FIXME: mudar todas as letras para Serif
-
+        textFont("Serif", 24); 
       }
 
 //      let upperLabel = this.label.substring(0,1).toUpperCase();
@@ -214,26 +225,19 @@ class Target {
 
       fill(color(255, 255, 255));
       textAlign(CENTER);
-      if(!is_menu){
+      if(!is_slice){
         text(this.label, this.x, this.y);
       }
       else{
-        text(this.label.toUpperCase(), LABEL_POS * Math.cos(this.halfAngle) + CX, LABEL_POS * Math.sin(this.halfAngle) + CY);
+        text(this.label.toUpperCase(), LABEL_POS * Math.cos(this.halfAngle) + this.x, LABEL_POS * Math.sin(this.halfAngle) + this.y);
       }
       
-    }
-    else {
-      //background(color(0,0,0));        // sets background to black
-
-      if (this.id === MENU_ID) {
+    
+    if (drawing === this) {
+      if (this.id === SLICE_ID) {
         for (let i = 0; i < this.targets.length; i++) {
           this.targets[i].draw();
-          //console.log("Loop do id === MENU_ID");
         }
-      }
-      else {
-        //console.log("Drawing para o screen 1");
-        drawing = "screen1";
       }
     }
   }
