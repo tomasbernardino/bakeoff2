@@ -4,10 +4,10 @@ let student_ID_form, display_size_form, start_button;                  // Initia
 let student_ID, display_size;                                          // User input parameters
 
 // Prints the initial UI that prompts that ask for student ID and screen size
-function drawUserIDScreen()
+function drawUserIDScreen(/*image1*/)
 { 
   background(color(0,0,0));                                          // sets background to black
-  
+  /*image(image1,windowWidth/2,windowHeight/2);*/                       // displays the image
   // Text prompt
   main_text = createDiv("Insert your student number and display size");
   main_text.id('main_text');
@@ -33,67 +33,64 @@ function drawUserIDScreen()
   display_size_label = createDiv("Display size in inches");         // create label
   display_size_label.id('input');
   display_size_label.position(10, display_size_pos_y_offset);
-  
+
+  let maxWidth = (screen_width*PPCM)/2; // Define a largura máxima para as regras
+
   // 3. Rules
   let rules_size_pos_y_offset = display_size_pos_y_offset + display_size_form.size().height + 40;
-
-  rules_size_label = createDiv("Rules (always on display):");
+  rules_size_label = createDiv("Rules:");
   rules_size_label.id('main_text');
   rules_size_label.position(10, rules_size_pos_y_offset);
+  rules_size_label.style('max-width', maxWidth + 'px'); // Define a largura máxima para as regras
 
   // 4. Rule 1
   let rule1_size_pos_y_offset = rules_size_pos_y_offset + rules_size_label.size().height + 10;
 
-  rule1_size_label = createDiv("1. The inicial screen shows a circular prefix menu with two letters that when");
+  rule1_size_label = createDiv("1- The PIE menu shows the last letter of the possible words.");
   rule1_size_label.id('main_text');
   rule1_size_label.position(20, rule1_size_pos_y_offset);
+  rule1_size_label.style('max-width', maxWidth + 'px');
 
-  // Rule 1.1
-  let rule11_size_pos_y_offset = rule1_size_pos_y_offset + rule1_size_label.size().height;
+    // 4. Rule 11
+    let rule11_size_pos_y_offset = rule1_size_pos_y_offset + rule1_size_label.size().height;
 
-  rule11_size_label = createDiv("clicked shows a submenu of the desired prefix.");
-  rule11_size_label.id('main_text');
-  rule11_size_label.position(40, rule11_size_pos_y_offset);
+    rule11_size_label = createDiv("When clicked, it shows the targets with the desired letter in the respective quadrant;");
+    rule11_size_label.id('main_text');
+    rule11_size_label.position(20, rule11_size_pos_y_offset);
+    rule11_size_label.style('max-width', maxWidth + 'px');
 
   // Rule 2
   let rule2_size_pos_y_offset = rule11_size_pos_y_offset + rule11_size_label.size().height + 10;
 
-  rule2_size_label = createDiv("2. The words bellow are the city names.");
+  rule2_size_label = createDiv("2- The targets each have the respective city name with its second letter also written above it;");
   rule2_size_label.id('main_text');
   rule2_size_label.position(20, rule2_size_pos_y_offset);
 
   // Rule 3
   let rule3_size_pos_y_offset = rule2_size_pos_y_offset + rule2_size_label.size().height + 10;
 
-  rule3_size_label = createDiv("3. If you click anywhere but a target, you go back to the inicial screen.");
+  rule3_size_label = createDiv("3- The pie menu is written in alphabetical order, clockwise;");
   rule3_size_label.id('main_text');
   rule3_size_label.position(20, rule3_size_pos_y_offset);
-
+  
   // Rule 4
   let rule4_size_pos_y_offset = rule3_size_pos_y_offset + rule3_size_label.size().height + 10;
 
-  rule4_size_label = createDiv("4. The words are ordered alphabetically and clockwise.");
+  rule4_size_label = createDiv("4- When clicking on a target in the circular menu it will be highlighted, when touching a city target it will emit a sound;");
   rule4_size_label.id('main_text');
   rule4_size_label.position(20, rule4_size_pos_y_offset);
 
   // Rule 5
-  let rule5_size_pos_y_offset = rule4_size_pos_y_offset + rule4_size_label.size().height + 10;
+  let rule5_size_pos_y_offset = rule4_size_pos_y_offset + rule4_size_label.size().height + 20;
 
-  rule5_size_label = createDiv("5. You can navigate as you want through the menus,");
+  rule5_size_label = createDiv("5 - The time only starts when you click on the first city target, so take your time to explore the creen;");
   rule5_size_label.id('main_text');
   rule5_size_label.position(20, rule5_size_pos_y_offset);
-
-  // Rule 6
-  let rule6_size_pos_y_offset = rule5_size_pos_y_offset + rule5_size_label.size().height;
-
-  rule6_size_label = createDiv("the time only starts after you click on the first city");
-  rule6_size_label.id('main_text');
-  rule6_size_label.position(40, rule6_size_pos_y_offset);
-
+ 
   // 4. Start button
   start_button = createButton('START');
   start_button.mouseReleased(startTest);
-  start_button.position(width/2 - start_button.size().width/2, height/1.3 - start_button.size().height/2);
+  start_button.position(width/2 - start_button.size().width/2, height/1.3 - start_button.size().height/2 + 20);
 }
 
 // Verifies if the student ID is a number, and within an acceptable range
@@ -141,7 +138,7 @@ function startTest()
     rule3_size_label.remove();
     rule4_size_label.remove();
     rule5_size_label.remove();
-    rule6_size_label.remove();
+    //rule6_size_label.remove();
     
     // Goes fullscreen and starts test
     fullscreen(!fullscreen());

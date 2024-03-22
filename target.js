@@ -1,9 +1,8 @@
 let RADIUS; // raio do círculo imaginário que contém os targets
 let LABEL_POS;
 var drawing = "pie"; // variável que vai ter o valor "pie" se só tiver desenhado o menu circular, senão irá ser um objecto do tipo Target
+let alternate_color = false;
 
-// Os targets tanto podem ser menus e abrir ecras com mais targets como podem ser targets normais que "voltam" para o ecra inicial ao clicar
-// (no fundo sao todos menus na medida que todos abrem um novo ecra, mas so os targets finais é que contam para os hits/misses)
 class Target {
   constructor(x, y,startAngle,halfAngle,endAngle, w, l, id, array) {
     this.x = x;
@@ -17,6 +16,7 @@ class Target {
     this.drawn = false;
     this.array = array;
     this.targets = [];
+    this.wasClicked = false;
     if (id == SLICE_ID) {
       this.createSubMenusOrTargets(this.array);
     }
@@ -27,8 +27,11 @@ class Target {
   createSubMenusOrTargets(array) {
 
     let t_size = target_size * windowHeight/28;
-    let h_gap = t_size;//horizontal_gap * PPCM - 80;
-    let v_gap = t_size+20;//vertical_gap * PPCM - 80;
+    //print("tamanho do target: ", t_size);
+    let h_gap = t_size+10;
+    //print("h_gap: ", h_gap);
+    let v_gap = 3*t_size/4+10;
+    //print("v_gap: ", v_gap);
     let start_x = 0;
     let start_y = 0;
     let end_x = 0;
@@ -41,16 +44,16 @@ class Target {
         quadrant = 1;
         
         if (this.label === "h") {
-          start_x = 2*windowWidth/3 + t_size/2;
+          start_x = 2*windowWidth/3 + 3*t_size/4;
           start_y = windowHeight/2 - t_size/3;
         }
         else{
-          start_x = 2*windowWidth/3;
+          start_x = 2*windowWidth/3 + t_size/2;
           start_y = windowHeight/3  - t_size/2;
         }
         if (this.label === "a") {
-          start_x = 2*windowWidth/3 - 5*t_size/6;
-          start_y = windowHeight/3 - 3*t_size/2;
+          start_x = 2*windowWidth/3 - 6*t_size/7;
+          start_y = windowHeight/3 - 7*t_size/4;
           end_x = start_x + Math.min(words,GRID_A_COLUMNS)*h_gap;
           end_y = start_y + Math.min(words,GRID_ROWS)*v_gap;
         }
@@ -61,7 +64,7 @@ class Target {
     }
     else if (this.halfAngle < HALF_PI) {
         quadrant = 2;
-        start_x = 2*windowWidth/3;
+        start_x = 2*windowWidth/3 + t_size/4;
         start_y = 2*windowHeight/3;
         end_y = start_y + Math.min(words,GRID_ROWS)*v_gap;
         end_x = start_x + Math.min(words,GRID_COLUMNS)*h_gap;
@@ -77,7 +80,7 @@ class Target {
         quadrant = 4;  
         if (this.label === "t") {
           start_y = windowHeight/2 - t_size/2;
-          end_x = windowWidth/3 + t_size/2;
+          end_x = windowWidth/3 + t_size/5;
         }
         else{
           start_y = windowHeight/3 - t_size;
@@ -86,40 +89,56 @@ class Target {
         start_x = end_x - Math.min(words,GRID_COLUMNS)*h_gap;
         end_y = start_y + Math.min(words,GRID_ROWS)*v_gap;
     }
-    
+    //print("label:",this.label,"start_x: ", start_x, "start_y: ", start_y, "end_x: ", end_x, "end_y: ", end_y, "quadrant: ", quadrant, "target size: ", t_size, "words: ", words, "h_gap: ", h_gap, "v_gap: ", v_gap)
 
-    // give it some margin from the left border
+    // give it some margin from the left border 
     let target_x = start_x        // give it some margin from the left border
-    let target_y = start_y       // give it some margin from the top border
+    let target_y = start_y        // give it some margin from the top border
+    let row_count = 0;
     for (let i = 0; i<words; i++){
-   
-      let legendas_index = array[i];
-      let target = new Target(target_x, target_y, 0, 0, 0, t_size, legendas.getString(legendas_index, 1), legendas.getNum(legendas_index, 0), null);
-      this.targets.push(target);
-      
-      if(target_x + h_gap === end_x){
-        if(quadrant == 1 && this.label !== "h"){
-          start_x += h_gap;
-          end_x += h_gap;
-          target_x = start_x;
+        let legendas_index = array[i];
+        let target = new Target(target_x, target_y, 0, 0, 0, t_size, legendas.getString(legendas_index, 1), legendas.getNum(legendas_index, 0), null);
+        this.targets.push(target);
+
+        if((this.label!== "a" && (i+1)%GRID_COLUMNS==0)||(this.label === "a" && (i+1)%GRID_A_COLUMNS==0)){
+            row_count++;
+            if(quadrant == 1 && this.label !== "h"){
+              if(this.label === "a"){
+                start_x += (4-row_count)*h_gap/4;
+                end_x += h_gap;
+              }
+              else{
+                start_x += h_gap/2;
+                end_x += h_gap/2;
+              }
+              target_x = start_x;
+              target_y += v_gap;
+            }
+            else if(quadrant == 2){
+                start_x -= h_gap/2;
+                target_y += v_gap;
+
+              target_x = start_x;
+            }
+            else if(quadrant == 3){
+              end_x += 3*h_gap/7;
+              target_x = end_x - Math.min(words-i-1,GRID_COLUMNS)*h_gap;
+                target_y += v_gap;
+
+            }
+            else if(quadrant==4 && this.label !== "t"){
+              end_x -= h_gap;
+              target_x = end_x - Math.min(words-i-1,GRID_COLUMNS)*h_gap;
+              target_y += v_gap;
+            }
+            else if(this.label === "t"){
+              target_y += v_gap;
+            }
+            
+        } 
+        else{
+            target_x += h_gap;
         }
-        else if(quadrant == 2){
-          start_x -= h_gap;
-          target_x = start_x;
-        }
-        else if(quadrant == 3){
-          end_x += h_gap;
-          target_x = end_x - Math.min(words-i-1,GRID_COLUMNS)*h_gap;
-        }
-        else if(quadrant==4 && this.label !== "t"){
-          end_x -= h_gap;
-          target_x = end_x - Math.min(words-i-1,GRID_COLUMNS)*h_gap;
-        }
-        target_y += v_gap;
-      }
-      else{
-        target_x += h_gap;
-      }
     }  
   }
 
@@ -146,15 +165,27 @@ class Target {
   getLabel() {
     return this.label;
   }
+  setWasClicked(){
+    this.wasClicked = true;
+  }
+
+  addDistance() {
+    this.x = GAP_SIZE * Math.cos(this.halfAngle)*3 + CX;
+    this.y = GAP_SIZE * Math.sin(this.halfAngle)*3 + CY;
+  }
+  delDistance() {
+    this.x = GAP_SIZE * Math.cos(this.halfAngle) + CX;
+    this.y = GAP_SIZE * Math.sin(this.halfAngle) + CY;
+  }
 
   // Checks if a mouse click took place
   // within the target
 
   clicked(mouse_x, mouse_y) {
+    let distance = 0; 
     // Calcula o ângulo entre o centro da fatia e o ponto de clique
     if(this.id === SLICE_ID){
       let angle = atan2(mouse_y - this.y, mouse_x - this.x);
-      print("angle: ", angle, "startAngle: ", this.startAngle, "endAngle: ", this.endAngle)
       let positive_startAngle = this.startAngle;
       let positive_endAngle = this.endAngle;
       if(this.startAngle < 0){
@@ -169,22 +200,27 @@ class Target {
       else if (angle > this.startAngle && angle < this.endAngle && this.startAngle < 0 && this.endAngle > 0){ // no caso de ser o H, tem startAngle negativo e endAngle positivo
         angle += TWO_PI;
       }
-
-      print("angle: ", angle, "startAngle: ", positive_startAngle, "endAngle: ", positive_endAngle)
-      print("o target",this.label,"id: ",this.id, "foi clicado");
+;
       // Verifica se o ângulo está dentro do intervalo da fatia
       if (angle >= positive_startAngle && angle <= positive_endAngle) {
         // Calcula a distância entre o ponto de clique e o centro da fatia
-        let distance = dist(mouse_x, mouse_y, this.x, this.y);
-        print(", retornou:", distance <= this.width / 2)
+        distance = dist(mouse_x, mouse_y, this.x, this.y);
         // Verifica se a distância está dentro do raio da fatia
-        return distance <= this.width / 2;
-      } else {
+        if(distance <= this.width / 2){
+          if(this.id !== SLICE_ID)
+            click_sound.play();
+          return true;
+        }
         return false;
       }
     }
     else{
-      return dist(mouse_x, mouse_y, this.x, this.y) <= this.width / 2;
+      if(dist(mouse_x, mouse_y, this.x, this.y) <= this.width / 2){
+        if(this.id !== SLICE_ID)
+        click_sound.play();
+        return true;
+      }
+      return false;
     }
 
   }
@@ -209,24 +245,36 @@ class Target {
       // Draw label 
 
       if (this.id === SLICE_ID) {
-        fill(color(100, 100, 100));
+        if(alternate_color){
+          fill(color(25, 55, 62));
+          alternate_color = false;
+        }
+        else{
+          fill(color(32, 125, 145));
+          alternate_color = true;
+        }
         arc(this.x, this.y, RADIUS, RADIUS, this.startAngle, this.endAngle, PIE);
         textFont("Serif", 40); 
         is_slice = true;
       } else {
-        fill(color(50, 50, 50));
-        circle(this.x, this.y, this.width);
-        textFont("Serif", 24); 
+        fill(color(79,79,79));
+        if(this.wasClicked){
+          //print("was clicked\n");
+          stroke('rgba(0, 255, 0, 0.25)');
+          strokeWeight(8);
+        }
+        rect(this.x - this.width/2, this.y - this.width/4, this.width, 3*this.width/4, 30);
+        //print("sem stroke\n");
+        noStroke();
+        textFont("Serif", 35); 
       }
-
-//      let upperLabel = this.label.substring(0,1).toUpperCase();
-//      let rest = this.label.substring(1)
-//      let finalLabel = upperLabel + rest;
 
       fill(color(255, 255, 255));
       textAlign(CENTER);
       if(!is_slice){
-        text(this.label, this.x, this.y);
+        text(this.label[1].toUpperCase(), this.x, this.y);
+        textFont("Serif", 22);
+        text(this.label, this.x, this.y + this.width/3);
       }
       else{
         text(this.label.toUpperCase(), LABEL_POS * Math.cos(this.halfAngle) + this.x, LABEL_POS * Math.sin(this.halfAngle) + this.y);

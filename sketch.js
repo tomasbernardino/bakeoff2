@@ -1,7 +1,3 @@
-//IDEAS: para dar para voltar para tras entre menus a ideia seria cada target ter o seu parent e ao clicar para voltar 
-//       para tras o drawing mudaria para o parent 
-//       ou algo como guardar o ultimo menu em que esteve (duvidoso, se estivermos no terceiro ecra e quisermos voltar 2 para tras para o menu inicial)
-// desenhar uma seta de 360º a comecar no target que tem o A para ser mais fácil visualizar a ordem alfabética
 // Bake-off #2 -- Seleção em Interfaces Densas
 // IPM 2023-24, Período 3
 // Entrega: até às 23h59, dois dias úteis antes do sexto lab (via Fenix)
@@ -11,7 +7,7 @@
 
 // Database (CHANGE THESE!)
 const GROUP_NUMBER = 59;      // Add your group number here as an integer (e.g., 2, 3)
-const RECORD_TO_FIREBASE = false;  // Set to 'true' to record user results to Firebase
+const RECORD_TO_FIREBASE = true;  // Set to 'true' to record user results to Firebase
 
 // Pixel density and setup variables (DO NOT CHANGE!)
 let PPI, PPCM;
@@ -31,16 +27,14 @@ let trials;                         // contains the order of targets that activa
 let current_trial = 0;      // the current trial number (indexes into trials array above)
 let attempt = 0;      // users complete each test twice to account for practice (attemps 0 and 1)
 
+let click_sound;                    // the sound of a click
+let image1;
 // Target list and layout variables
 let targets = [];
 const GRID_ROWS = 5;      // We divide our 80 targets in a 8x10 grid
 const GRID_COLUMNS = 3;     // We divide our 80 targets in a 8x10 grid
 const GRID_A_COLUMNS = 4; // We divide our 80 targets in a 8x10 grid
 const SLICE_ID = -1;    // The ID of the target that is not the final target
-
-//FIXME: estas variaveis nao podem estar aqui!!!! TEM QUE ESTAR NO WINDOWRESIZED do sketch 
-// Arranjar maneira de as passar para aqui ou simplementar algo parecido
-// Target class (position and width)
 
 var screen_width;
 var screen_height;
@@ -51,7 +45,6 @@ let CX;
 let CY;
 
 var GAP_SIZE = 10;
-//var MAX_DISTANCE = 0.15;
 var MAXRAD = Math.PI * 2; // 360 º
 
 
@@ -77,13 +70,17 @@ function sortByCity(matrix) {
 function preload() {
   // id,name,...
   legendas = loadTable('legendas.csv', 'csv', 'header');
+  click_sound = loadSound('click_sound.wav');
+  
+  //image1 = loadImage('screenshot1.png');
 }
 
 // Runs once at the start
 function setup() {
-  createCanvas(700, 500);    // window size in px before we go into fullScreen()
+  createCanvas(900, 500);    // window size in px before we go into fullScreen()
   frameRate(60);             // frame rate (DO NOT CHANGE!)
   // Extrai os dados da tabela legendas para uma matriz JavaScript
+  click_sound.setVolume(0.05);
   let legendasArray = [];
   for (let i = 0; i < legendas.getRowCount(); i++) {
     let rowData = [];
@@ -104,7 +101,7 @@ function setup() {
   }
 
   randomizeTrials();         // randomize the trial order at the start of execution
-  drawUserIDScreen();        // draws the user start-up screen (student ID and display size)
+  drawUserIDScreen(/*image1*/);        // draws the user start-up screen (student ID and display size)
 }
 
 function normalizeString(str) {
@@ -117,27 +114,21 @@ function getSufix(str, size) {
   return normalized.substring(normalized.length - size, normalized.length);
 }
 
-//FIXME mudar nome da função
+
 // pega nas legendas e subdivide em arrays orgnaizados por sufixos
-function createMapSet(size) {
+function orderMenus(size) {
   let unordered_index_array = {};
   for (let i = 0; i < legendas.getRowCount(); i++) {
     let temp = legendas.getString(i, 1);
     let sufix = getSufix(temp, size);
     
-    print("Sufixo: ",sufix);
+    //print("Sufixo: ",sufix);
       if (!unordered_index_array[sufix]) {
         unordered_index_array[sufix] = [];
       }
       unordered_index_array[sufix].push(i);
   }
-      //let prefix = legendas.getString(i, 1).substring(0, size);
 
-//    if (sufix.localeCompare("Bé") === 0) {
-//      if (!indexed_array["Be"]) {
-//        indexed_array["Be"] = [];
-//      }
-//      indexed_array["Be"].push(i); // FIXME afinal vamos guardar o INDICE NA TABELA DE LEGENDAS
   let sortedKeys = Object.keys(unordered_index_array).sort();
   // Criar indexed_array ordenado
   let indexed_array = {};
@@ -154,7 +145,7 @@ function createMapSet(size) {
 function drawPIE() {
   for (let i = 0; i < targets.length; i++) {
     targets[i].draw();
-    //print(targets[i].getLabel());
+
   }
 }
 
@@ -176,22 +167,8 @@ function draw() {
     textAlign(LEFT);
     text("Trial " + (current_trial + 1) + " of " + trials.length, 50, 20);
 
-    // Draw all targets
-    // desenha o ecra de acordo com o que esta no drawing (screen1 =  inicial), se for apos carregar num target(menu) drawing = target clicado
-    //if (drawing === "pie") {
-    drawPIE(); /*
-        for (let i = 0; i < targets.length; i++) {
-          targets[i].draw();
-        //print(targets[i].getLabel());
-      }
-    }
-      */
-    //}
-    //if(drawing !== "pie"){
-    //  drawCurrentScreen();
-    //}
+    drawPIE();
 
-    //for (var i = 0; i < legendas.getRowCount(); i++) targets[i].draw();
 
     // Draws the target label to be selected in the current trial. We include 
     // a black rectangle behind the trial label for optimal contrast in case 
@@ -266,11 +243,9 @@ function mousePressed() {
   // (i.e., during target selections)
   if (draw_targets) {
     let aux = []; //vai guardar a lista de targets do menu atual(screen1 ou outro menu)
-    //let flag = false;
 
-    //if (drawing === "pie") {
       aux.push(targets);
-    //}
+
     if (drawing!=="pie") { //caso outro menu/submenu
       aux.push(drawing.targets);
     }
@@ -280,24 +255,22 @@ function mousePressed() {
         let target = aux[i][j];
         // Check if the user clicked over one of the targets
         if (target.clicked(mouseX, mouseY)) {
-          //flag = true;
 
           if (target.getID() === SLICE_ID) {
+            target.addDistance();
             if (drawing !== "pie") {
-            //else {
+              drawing.delDistance();
               drawing.delete();
             }
+
             drawing = target; // se clicar num target, já apagou (hitboxes) os que estavam no ecrã e agora vai indicar ao draw que pode desenhar o menu clicado
           }
           else {
-            //if (drawing !== "pie") {
-            //  drawing.delete();
-            //}
-            //drawing = "pie"; //no caso de ter clicado num target final, irá voltar ao ecrã inicial
-
             // Checks if it was the correct target
-            print("Target id" + targets[i].id + "trial" + (legendas.getNum(trials[current_trial], 0)));
-
+            //print("Target id" + targets[i].id + "trial" + (legendas.getNum(trials[current_trial], 0)));
+            //print(target.label);
+            target.setWasClicked();
+            
             if (target.id === legendas.getNum(trials[current_trial], 0)) hits++;
             else misses++;
 
@@ -307,13 +280,6 @@ function mousePressed() {
         }
       }
     }
-
-    //if (!flag && drawing !== "pie") {
-    //  drawing.delete();
-    //  drawing = "pie";
-    //}
-    //
-    //flag = false;
 
     // Check if the user has completed all trials
     if (current_trial === NUM_OF_TRIALS) {
@@ -356,28 +322,25 @@ function continueTest() {
 // (todos os submenus sao logo criados) quando o Target é criado, mas nao sao desenhados, apenas quando clicamos no target(menu) é que sao desenhados
 // se tiver apenas um elemento, cria um target com o nome da cidade
 
-//!!!!!!!!!!!!!!!!!! aqui é que se pode mudar o layout/posicionamento e tamanho dos targets !!!!!!!!!!!!!!!!!!!!!!!!!
+
 function createTargets(target_size, horizontal_gap, vertical_gap, windowWidth, windowHeight) {
-  let indexed_array = createMapSet(1); // Chama a função createMapSet
+  let indexed_array = orderMenus(1); // Chama a função orderMenus
   console.log(indexed_array);
-  var r = 0;
-  var c = 0;
+
   RADIUS = windowWidth / 3.15;
-  LABEL_POS = 4.3* PPCM;
+  LABEL_POS = windowWidth / 7.5;
   h_margin = horizontal_gap / (GRID_COLUMNS - 1);
   v_margin = vertical_gap / (GRID_ROWS - 1);
 
   let menus = Object.keys(indexed_array).length;
   let words = 0;
 
-  print("words: ", words, " menus: ", menus);
+  //print("words: ", words, " menus: ", menus);
 
-  //var angleIncrement = (2 * Math.PI) / menus;
-  //var radius = windowWidth / 70;
+
   var loopCounter = 0;
 
-  //print("radius: ", radius, " angleIncrement: ", angleIncrement);
-  print("menus: ", menus);
+  //print("menus: ", menus);
   
   for (key in indexed_array) {
     let cx;
@@ -386,67 +349,22 @@ function createTargets(target_size, horizontal_gap, vertical_gap, windowWidth, w
     let fromRadians = MAXRAD * (loopCounter / (menus+words)) - HALF_PI;
     let toRadians = fromRadians + sliceSize;
     let halfRadians = fromRadians + (sliceSize / 2);
-    if(key.localeCompare("a") === 0){
-      cx = GAP_SIZE * Math.cos(halfRadians)*5 + CX; // x da ponta da fatia
-      cy = GAP_SIZE * Math.sin(halfRadians)*5 + CY;// y da ponta da fatia
-    }
-    else{    
-      cx = GAP_SIZE * Math.cos(halfRadians) + CX; // x da ponta da fatia
-      cy = GAP_SIZE * Math.sin(halfRadians) + CY;// y da ponta da fatia}
-    }
-    //var angle = angleIncrement * loopCounter;
-    print("Key:", key, "Value:", indexed_array[key]);
-    // let target_x = 40 + (h_margin + target_size) * c + target_size / 2;        // give it some margin from the left border
-    // let target_y = (v_margin + target_size) * r + target_size / 2;
 
-    //menu
-    //if (indexed_array[key].length > 1) {
+    cx = GAP_SIZE * Math.cos(halfRadians) + CX; // x da ponta da fatia
+    cy = GAP_SIZE * Math.sin(halfRadians) + CY;// y da ponta da fatia
+
+    //print("Key:", key, "Value:", indexed_array[key]);
 
       let targetMenu = new Target(cx, cy, fromRadians, halfRadians, toRadians, RADIUS, key, SLICE_ID, indexed_array[key]);
       targets.push(targetMenu);
-      
-      
-    //} else{
-    
-      //let target_x = target_size * c + windowWidth / 2.0 - words / 2.0 * target_size + target_size / 2;        // give it some margin from the left border
-      //let target_y = (v_margin + target_size) * r + target_size / 2 + windowHeight / 5 * 3.8;
-
-    //  let legendas_index = indexed_array[key][0];
-    //  let target = new Target(cx, cy, fromRadians, halfRadians, toRadians, RADIUS, legendas.getString(legendas_index, 1), legendas.getNum(legendas_index, 0), null);
-    // targets.push(target);
-
-      //if (c < GRID_COLUMNS - 1) c++; //Serve para iterar pela grid do layout original
-      //else { c = 0; r++; }
-      //if (r > GRID_ROWS) break;
-    
     
     loopCounter++;
-    print("windowWidth: ", windowWidth, " windowHeight: ", windowHeight);
-    print("screen_width: ", screen_width, " screen_height: ", screen_height); 
+    //print("windowWidth: ", windowWidth, " windowHeight: ", windowHeight);
+    //print("screen_width: ", screen_width, " screen_height: ", screen_height); 
 
   }
-
-  //print(targets);
 }
-// Define the margins between targets by dividing the white space 
-// for the number of targets minus one
 
-
-// Set targets in a 8 x 10 grid
-//  for (var r = 0; r < GRID_ROWS; r++)
-//  {
-//    for (var c = 0; c < GRID_COLUMNS; c++)
-//    {
-//      // Find the appropriate label and ID for this target
-//      let legendas_index = c + GRID_COLUMNS * r;
-//      let target_id = legendas.getNum(legendas_index, 0);  
-//      let target_label = legendas.getString(legendas_index, 1);   
-//      
-//      let target = new Target(target_x, target_y + 40, target_size, target_label, target_id);
-//      targets.push(target);
-//    }  
-//  }
-//}
 
 // Is invoked when the canvas is resized (e.g., when we go fullscreen)
 function windowResized() {
@@ -456,26 +374,24 @@ function windowResized() {
     //FIXME voltar a colocar aqui as variaveis que estam comentadas e estao no target.js
 
     // DO NOT CHANGE THE NEXT THREE LINES!
-    // let display        = new Display({ diagonal: display_size }, window.screen);
-    // PPI                = display.ppi;                      // calculates pixels per inch
-    // PPCM               = PPI / 2.54;                       // calculates pixels per cm
-    //
-    let display = new Display({ diagonal: display_size }, window.screen);
-    PPI = display.ppi;                      // calculates pixels per inch
-    PPCM = PPI / 2.54;                       // calculates pixels per cm
-    //// Make your decisions in 'cm', so that targets have the same size for all participants
-    //// Below we find out out white space we can have between 2 cm targets
+     let display        = new Display({ diagonal: display_size }, window.screen);
+     PPI                = display.ppi;                      // calculates pixels per inch
+     PPCM               = PPI / 2.54;                       // calculates pixels per cm
+    
+    // Make your decisions in 'cm', so that targets have the same size for all participants
+    // Below we find out out white space we can have between 2 cm targets
     screen_width   = display.width * 2.54;             // screen width
     screen_height  = display.height * 2.54;            // screen height
-    target_size    = 3.5;                                // sets the target size (will be converted to cm when passed to createTargets)
+    target_size    = windowWidth/475;                                // sets the target size (will be converted to cm when passed to createTargets)
     horizontal_gap = screen_width - target_size * GRID_COLUMNS;// empty space in cm across the x-axis (based on 10 targets per row)
     vertical_gap   = screen_height - target_size * GRID_ROWS;  // empty space in cm across the y-axis (based on 8 targets per column)
     CX = windowWidth/2; //FIXME corrigir centro do ecrã x
     CY = windowHeight/2 - 40; //centro do ecrã y
     // Creates and positions the UI targets according to the white space defined above (in cm!)
     // 80 represent some margins around the display (e.g., for text)
-    createTargets(target_size * windowHeight / 28, horizontal_gap * PPCM - 80, vertical_gap * PPCM - 80, windowWidth, windowHeight);
-
+    if (!draw_targets) {
+      createTargets(target_size * windowHeight / 28, horizontal_gap * PPCM - 80, vertical_gap * PPCM - 80, windowWidth, windowHeight);
+    }
     // Starts drawing targets immediately after we go fullscreen
     draw_targets = true;
   }
